@@ -110,16 +110,10 @@ public class ServerProperties {
 
     private String clusterInfo;
 
-    /**
-     * random access / direct access / indirect access
-     */
     private boolean useDirectByteBuffer;
 
     private int byteBufferPoolSize;
 
-    /**
-     * only used when readWriteFileStrategy is direct access / indirect access
-     */
     private int byteBufferSizeLimit;
 
     private boolean synLogFlush;

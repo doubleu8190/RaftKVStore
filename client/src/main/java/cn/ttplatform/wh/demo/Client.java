@@ -113,6 +113,7 @@ public class Client {
         Watcher watcher = new Watcher();
         Client client = new Client(watcher);
         Channel connection = client.connect();
+//        clusterChangeCommand(connection,watcher);
 
         int target = 100000;
         watcher.reset(target);
@@ -131,11 +132,11 @@ public class Client {
         client.close();
     }
 
-    private static void clusterChangeCommand(Channel channel, Watcher watcher) throws InterruptedException {
+    private static void clusterChangeCommand(Channel channel, Watcher watcher) {
         Set<String> newConfig = new HashSet<>();
-        newConfig.add("A,127.0.0.1,6666");
-        newConfig.add("B,127.0.0.1,7777");
-        newConfig.add("C,127.0.0.1,8888");
+        newConfig.add("A,127.0.0.1,6666,6665");
+        newConfig.add("B,127.0.0.1,7777,7776");
+        newConfig.add("C,127.0.0.1,8888,8887");
 
         watcher.startWatch();
         channel.writeAndFlush(ClusterChangeCommand.builder().newConfig(newConfig).id(UUID.randomUUID().toString()).build());

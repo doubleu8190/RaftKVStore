@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 public class LazyFlushStrategy {
     private long lastFlushTime;
     private final long flushInterval;
-    private final long sendBufferSize;
     private final double threshold;
     private final Channel channel;
 
@@ -22,13 +21,13 @@ public class LazyFlushStrategy {
         this.channel = channel;
         this.flushInterval = flushInterval;
         this.threshold = threshold;
-        this.sendBufferSize = channel.config().getOption(ChannelOption.SO_SNDBUF);
         beginScheduleTask();
     }
 
     public boolean flush() {
         long writableBytes = channel.bytesBeforeUnwritable();
         long now = System.currentTimeMillis();
+        long sendBufferSize = channel.config().getOption(ChannelOption.SO_SNDBUF);
         long usedBytes = sendBufferSize - writableBytes;
         boolean timeoutCondition = now - lastFlushTime >= flushInterval && usedBytes > 0;
         boolean thresholdCondition = (double) usedBytes / sendBufferSize >= threshold;

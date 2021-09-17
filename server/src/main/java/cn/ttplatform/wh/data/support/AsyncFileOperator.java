@@ -207,6 +207,7 @@ public class AsyncFileOperator {
         }
         // remove all matched content in disk.
         try {
+            // maybe truncate operation is unnecessary
             fileChannel.truncate(position);
         } catch (IOException e) {
             throw new OperateFileException(String.format("failed to truncate a file at offset[%d].", position), e);
