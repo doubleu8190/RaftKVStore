@@ -1,11 +1,10 @@
 package cn.ttplatform.wh.handler;
 
+import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.cmd.ClusterChangeCommand;
 import cn.ttplatform.wh.cmd.RequestFailedCommand;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.constant.ErrorMessage;
-import cn.ttplatform.wh.GlobalContext;
-import cn.ttplatform.wh.group.Cluster;
 import cn.ttplatform.wh.group.EndpointMetaData;
 import cn.ttplatform.wh.group.Phase;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
@@ -40,10 +39,9 @@ public class ClusterChangeCommandHandler extends AbstractDistributableHandler {
     @Override
     public void doHandleInClusterMode(Distributable distributable) {
         ClusterChangeCommand cmd = (ClusterChangeCommand) distributable;
-        Cluster cluster = context.getCluster();
         log.info("receive an ClusterChangeCommand");
-        if (!context.setCurrentClusterChangeTask(cmd) || cluster.getPhase() != Phase.STABLE) {
-            log.info("there is a ClusterChangeCommand being executed, or the phase[{}] is not STABLE.", cluster.getPhase());
+        if (!context.setCurrentClusterChangeTask(cmd) || context.currentPhase() != Phase.STABLE) {
+            log.info("there is a ClusterChangeCommand being executed, or the phase[{}] is not STABLE.", context.currentPhase());
             context.removeClusterChangeTask();
             requestFailedCommand.setId(cmd.getId());
             requestFailedCommand.setFailedMessage(ErrorMessage.CLUSTER_CHANGE_IN_PROGRESS);
@@ -52,12 +50,12 @@ public class ClusterChangeCommandHandler extends AbstractDistributableHandler {
             Set<String> newConfigStr = cmd.getNewConfig();
             Set<EndpointMetaData> newConfig = new HashSet<>(newConfigStr.size());
             newConfigStr.forEach(metaData -> newConfig.add(new EndpointMetaData(metaData)));
-            if (cluster.updateNewConfigMap(newConfig)) {
+            if (context.updateNewConfig(newConfig)) {
                 // If there is no added node, go directly to the OLD_NEW phase
                 log.info("there is no added node");
-                cluster.enterOldNewPhase();
+                context.enterOldNewPhase();
             } else {
-                cluster.enterSyncingPhase();
+                context.enterSyncingPhase();
             }
         }
     }

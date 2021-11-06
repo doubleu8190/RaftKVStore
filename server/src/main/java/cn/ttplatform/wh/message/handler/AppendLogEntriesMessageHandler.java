@@ -5,18 +5,13 @@ import cn.ttplatform.wh.Node;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.data.DataManager;
 import cn.ttplatform.wh.exception.IncorrectLogIndexNumberException;
-import cn.ttplatform.wh.group.Cluster;
-import cn.ttplatform.wh.group.Phase;
 import cn.ttplatform.wh.message.AppendLogEntriesMessage;
 import cn.ttplatform.wh.message.AppendLogEntriesResultMessage;
-import cn.ttplatform.wh.role.Follower;
 import cn.ttplatform.wh.role.Role;
 import cn.ttplatform.wh.role.RoleType;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
 import cn.ttplatform.wh.support.Distributable;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Objects;
 
 /**
  * @author Wang Hao
@@ -39,10 +34,7 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         AppendLogEntriesMessage message = (AppendLogEntriesMessage) distributable;
         try {
             context.sendMessage(process(message), message.getSourceId());
-            Cluster cluster = context.getCluster();
-            if (cluster.getPhase() == Phase.NEW) {
-                cluster.enterStablePhase();
-            }
+            context.enterStablePhase();
         } catch (IncorrectLogIndexNumberException e) {
             log.warn(e.getMessage());
         }

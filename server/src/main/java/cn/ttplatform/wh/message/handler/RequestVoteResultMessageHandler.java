@@ -73,8 +73,8 @@ public class RequestVoteResultMessageHandler extends AbstractDistributableHandle
      */
     private boolean checkVoteCounts(Message e, Candidate candidate) {
         Cluster cluster = context.getCluster();
-        int countOfOldConfig = cluster.countOfOldConfig();
-        int countOfNewConfig = cluster.countOfNewConfig();
+        int countOfOldConfig = cluster.getOldConfigSize();
+        int countOfNewConfig = cluster.getNewConfigSize();
         if (log.isDebugEnabled()) {
             log.debug("countOfOldConfig is {}", countOfOldConfig);
             log.debug("countOfNewConfig is {}", countOfNewConfig);

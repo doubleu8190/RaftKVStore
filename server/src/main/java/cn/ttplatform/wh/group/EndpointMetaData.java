@@ -17,6 +17,7 @@ public class EndpointMetaData {
 
     private String nodeId;
     private String host;
+    private int commandPort;
     private int connectorPort;
 
     public EndpointMetaData(String metaData) {
@@ -27,6 +28,7 @@ public class EndpointMetaData {
         nodeId = pieces[0];
         host = pieces[1];
         try {
+            commandPort = Integer.parseInt(pieces[2]);
             connectorPort = Integer.parseInt(pieces[3]);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("illegal port in node info [" + metaData + "]");
@@ -34,7 +36,11 @@ public class EndpointMetaData {
     }
 
 
-    public InetSocketAddress getAddress() {
+    public InetSocketAddress getConnectorAddress() {
         return new InetSocketAddress(host, connectorPort);
+    }
+
+    public InetSocketAddress getCommandAddress() {
+        return new InetSocketAddress(host, commandPort);
     }
 }

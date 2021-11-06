@@ -1,15 +1,13 @@
 package cn.ttplatform.wh.message.handler;
 
-import cn.ttplatform.wh.message.AppendLogEntriesResultMessage;
-import cn.ttplatform.wh.constant.DistributableType;
+import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.Node;
+import cn.ttplatform.wh.constant.DistributableType;
+import cn.ttplatform.wh.group.Endpoint;
+import cn.ttplatform.wh.message.AppendLogEntriesResultMessage;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
 import cn.ttplatform.wh.support.Distributable;
 import cn.ttplatform.wh.support.Message;
-import cn.ttplatform.wh.GlobalContext;
-import cn.ttplatform.wh.group.Cluster;
-import cn.ttplatform.wh.group.Endpoint;
-import cn.ttplatform.wh.group.Phase;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -29,14 +27,13 @@ public class AppendLogEntriesResultMessageHandler extends AbstractDistributableH
     }
 
     public void preHandle(Message e) {
-        Cluster cluster = context.getCluster();
-        if (Phase.SYNCING == cluster.getPhase() && cluster.isSyncingNode(e.getSourceId()) && cluster.synHasComplete()) {
+        if (context.syncingPhaseCompleted(e.getSourceId())) {
             /*
              The leader starts to use the new configuration and the old configuration at the same
              time, and adds a log containing the new and old configuration to the cluster
              */
             log.info("all syncing Endpoint had catchup, enter OLD_NEW phase");
-            cluster.enterOldNewPhase();
+            context.enterOldNewPhase();
         }
     }
 
@@ -52,7 +49,7 @@ public class AppendLogEntriesResultMessageHandler extends AbstractDistributableH
             return;
         }
         if (node.isLeader()) {
-            Endpoint endpoint = context.getCluster().find(message.getSourceId());
+            Endpoint endpoint = context.getEndpoint(message.getSourceId());
             if (endpoint == null) {
                 log.warn("node[{}] is not in cluster.", message.getSourceId());
                 return;
@@ -65,7 +62,7 @@ public class AppendLogEntriesResultMessageHandler extends AbstractDistributableH
                     endpoint.updateMatchHelperState(true);
                 }
 
-                int newCommitIndex = context.getCluster().getNewCommitIndex();
+                int newCommitIndex = context.getNewCommitIndex();
                 if (context.getDataManager().advanceCommitIndex(newCommitIndex, currentTerm)) {
                     context.advanceLastApplied(newCommitIndex);
                 }

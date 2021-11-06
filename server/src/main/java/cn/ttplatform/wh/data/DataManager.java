@@ -1,34 +1,41 @@
 package cn.ttplatform.wh.data;
 
+import static cn.ttplatform.wh.data.FileConstant.METADATA_FILE_NAME;
+
 import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.data.index.AsyncLogIndexFile;
 import cn.ttplatform.wh.data.index.LogIndexFileMetadataRegion;
 import cn.ttplatform.wh.data.index.LogIndexOperation;
 import cn.ttplatform.wh.data.index.SyncLogIndexFile;
-import cn.ttplatform.wh.data.log.*;
+import cn.ttplatform.wh.data.log.AsyncLogFile;
+import cn.ttplatform.wh.data.log.Log;
+import cn.ttplatform.wh.data.log.LogFileMetadataRegion;
+import cn.ttplatform.wh.data.log.LogOperation;
+import cn.ttplatform.wh.data.log.SyncLogFile;
 import cn.ttplatform.wh.data.snapshot.Snapshot;
 import cn.ttplatform.wh.data.snapshot.SnapshotBuilder;
 import cn.ttplatform.wh.data.snapshot.SnapshotFileMetadataRegion;
 import cn.ttplatform.wh.data.support.Bits;
 import cn.ttplatform.wh.exception.IncorrectLogIndexNumberException;
-import cn.ttplatform.wh.group.Cluster;
 import cn.ttplatform.wh.group.Endpoint;
 import cn.ttplatform.wh.message.AppendLogEntriesMessage;
 import cn.ttplatform.wh.message.InstallSnapshotMessage;
 import cn.ttplatform.wh.support.FixedSizeDirectByteBufferPool;
 import cn.ttplatform.wh.support.Message;
 import cn.ttplatform.wh.support.Pool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.IntStream;
-
-import static cn.ttplatform.wh.data.FileConstant.METADATA_FILE_NAME;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Wang Hao
@@ -88,17 +95,20 @@ public class DataManager {
         File latestLogIndexFile = FileConstant.getMatchedLogIndexFile(path);
         if (properties.isSynLogFlush()) {
             this.logOperation = new SyncLogFile(latestLogFile, byteBufferPool, logFileMetadataRegion);
-            this.logIndexOperation = new SyncLogIndexFile(latestLogIndexFile, logIndexFileMetadataRegion, byteBufferPool, snapshot.getLastIncludeIndex());
+            this.logIndexOperation = new SyncLogIndexFile(latestLogIndexFile, logIndexFileMetadataRegion, byteBufferPool,
+                snapshot.getLastIncludeIndex());
         } else {
             this.logOperation = new AsyncLogFile(latestLogFile, properties, fixedByteBufferPool, logFileMetadataRegion);
-            this.logIndexOperation = new AsyncLogIndexFile(latestLogIndexFile, properties, fixedByteBufferPool, snapshot.getLastIncludeIndex(), logIndexFileMetadataRegion);
+            this.logIndexOperation = new AsyncLogIndexFile(latestLogIndexFile, properties, fixedByteBufferPool,
+                snapshot.getLastIncludeIndex(), logIndexFileMetadataRegion);
         }
 
         if (!logOperation.isEmpty() && logIndexOperation.isEmpty()) {
             // means that the index file is wrong or missing.
             rebuildIndexFile();
         }
-        this.snapshotBuilder = new SnapshotBuilder(base, byteBufferPool, snapshotFileMetadataRegion, generatingSnapshotFileMetadataRegion);
+        this.snapshotBuilder = new SnapshotBuilder(base, byteBufferPool, snapshotFileMetadataRegion,
+            generatingSnapshotFileMetadataRegion);
         this.commitIndex = logIndexOperation.getMaxIndex();
         this.nextIndex = commitIndex + 1;
     }
@@ -182,8 +192,8 @@ public class DataManager {
             return log.getTerm();
         }
         return Optional.ofNullable(logIndexOperation.getLogMetaData(index))
-                .orElseThrow(() -> new IncorrectLogIndexNumberException("not found log meta data for index[" + index + "]."))
-                .getTerm();
+            .orElseThrow(() -> new IncorrectLogIndexNumberException("not found log meta data for index[" + index + "]."))
+            .getTerm();
     }
 
     /**
@@ -204,7 +214,7 @@ public class DataManager {
         if (!pending.isEmpty() && log.getIndex() != pending.lastEntry().getKey() + 1) {
             // maybe received an expired message
             throw new IncorrectLogIndexNumberException(
-                    "The index[" + log.getIndex() + "] number of the log is incorrect ");
+                "The index[" + log.getIndex() + "] number of the log is incorrect ");
         }
         pending.put(log.getIndex(), log);
         nextIndex++;
@@ -213,21 +223,19 @@ public class DataManager {
 
     public void pendingLogs(int index, List<Log> entries) {
         removeAfter(index);
-        Cluster cluster = context.getCluster();
         if (entries != null && !entries.isEmpty()) {
             for (Log log : entries) {
                 if (log.getType() == Log.OLD_NEW) {
                     logger.info("receive a OLD_NEW log[{}] from leader", log);
-                    cluster.applyOldNewConfig(log.getCommand());
-                    cluster.enterOldNewPhase();
+                    context.applyOldNewConfig(log.getCommand());
                 } else if (log.getType() == Log.NEW) {
                     logger.info("receive a NEW log[{}] from leader", log);
-                    cluster.applyNewConfig(log.getCommand());
-                    cluster.enterNewPhase();
+                    context.applyNewConfig(log.getCommand());
                 }
                 if (!pending.isEmpty() && log.getIndex() != pending.lastEntry().getKey() + 1) {
                     // maybe received an expired message
-                    throw new IncorrectLogIndexNumberException("The index[" + log.getIndex() + "] number of the log is incorrect.");
+                    throw new IncorrectLogIndexNumberException(
+                        "The index[" + log.getIndex() + "] number of the log is incorrect.");
                 }
                 pending.put(log.getIndex(), log);
             }
@@ -281,11 +289,11 @@ public class DataManager {
             return null;
         }
         AppendLogEntriesMessage message = AppendLogEntriesMessage.builder()
-                .leaderCommitIndex(commitIndex)
-                .term(term)
-                .matchComplete(endpoint.isMatchComplete())
-                .leaderId(leaderId)
-                .build();
+            .leaderCommitIndex(commitIndex)
+            .term(term)
+            .matchComplete(endpoint.isMatchComplete())
+            .leaderId(leaderId)
+            .build();
         if (endpoint.isMatchComplete()) {
             message.setLogEntries(range(endpointNextIndex, endpointNextIndex + size));
         }
@@ -303,12 +311,12 @@ public class DataManager {
 
     public Message createInstallSnapshotMessage(int term, long offset, int size) {
         return InstallSnapshotMessage.builder().term(term)
-                .offset(offset)
-                .lastIncludeIndex(snapshot.getLastIncludeIndex())
-                .lastIncludeTerm(snapshot.getLastIncludeTerm())
-                .chunk(snapshot.read(offset, size))
-                .done(offset + size >= snapshot.size())
-                .build();
+            .offset(offset)
+            .lastIncludeIndex(snapshot.getLastIncludeIndex())
+            .lastIncludeTerm(snapshot.getLastIncludeTerm())
+            .chunk(snapshot.read(offset, size))
+            .done(offset + size >= snapshot.size())
+            .build();
     }
 
     /**
@@ -416,9 +424,11 @@ public class DataManager {
                 subTaskExecutor.execute(oldLogOperation::close);
                 subTaskExecutor.execute(logIndexOperation::close);
                 if (properties.isSynLogFlush()) {
-                    logIndexOperation = new SyncLogIndexFile(newLogIndexFile, generatingLogIndexFileMetadataRegion, byteBufferPool, snapshot.getLastIncludeIndex());
+                    logIndexOperation = new SyncLogIndexFile(newLogIndexFile, generatingLogIndexFileMetadataRegion,
+                        byteBufferPool, snapshot.getLastIncludeIndex());
                 } else {
-                    logIndexOperation = new AsyncLogIndexFile(newLogIndexFile, properties, fixedByteBufferPool, snapshot.getLastIncludeIndex(), generatingLogIndexFileMetadataRegion);
+                    logIndexOperation = new AsyncLogIndexFile(newLogIndexFile, properties, fixedByteBufferPool,
+                        snapshot.getLastIncludeIndex(), generatingLogIndexFileMetadataRegion);
                 }
                 logIndexOperation.exchangeLogFileMetadataRegion(logIndexFileMetadataRegion);
                 if (!logOperation.isEmpty() && logIndexOperation.isEmpty()) {
@@ -454,8 +464,8 @@ public class DataManager {
     }
 
     /**
-     * Find the log list from the {@param from} position to the {@param to} position, but this list does not contain the
-     * {@param to} position
+     * Find the log list from the {@param from} position to the {@param to} position, but this list does not contain the {@param
+     * to} position
      *
      * @param from start index
      * @param to   end index

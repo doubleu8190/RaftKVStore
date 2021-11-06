@@ -52,8 +52,8 @@ public class PreVoteResultMessageHandler extends AbstractDistributableHandler {
 
     private boolean checkVoteCounts(Message e, Follower role) {
         Cluster cluster = context.getCluster();
-        int countOfOldConfig = cluster.countOfOldConfig();
-        int countOfNewConfig = cluster.countOfNewConfig();
+        int countOfOldConfig = cluster.getOldConfigSize();
+        int countOfNewConfig = cluster.getNewConfigSize();
         if (log.isDebugEnabled()) {
             log.debug("countOfOldConfig is {}", countOfOldConfig);
             log.debug("countOfNewConfig is {}", countOfNewConfig);

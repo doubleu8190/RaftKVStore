@@ -68,9 +68,7 @@ public class Connector {
         }
     }
 
-    public Channel connect(EndpointMetaData metaData) {
-        InetSocketAddress socketAddress = metaData.getAddress();
-        String remoteId = metaData.getNodeId();
+    public Channel connect(InetSocketAddress socketAddress,String remoteId) {
         Channel channel = channelPool.getChannel(remoteId);
         if (channel != null && channel.isOpen()) {
             return channel;
@@ -92,7 +90,7 @@ public class Connector {
     }
 
     public ChannelFuture send(Message message, EndpointMetaData metaData) {
-        Channel channel = connect(metaData);
+        Channel channel = connect(metaData.getConnectorAddress(),metaData.getNodeId());
         if (channel == null) {
             return null;
         }
