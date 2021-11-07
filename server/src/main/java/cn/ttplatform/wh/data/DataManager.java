@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.IntStream;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,7 @@ public class DataManager {
     private final LogIndexFileMetadataRegion generatingLogIndexFileMetadataRegion;
 
     private int commitIndex;
+    @Getter
     private int nextIndex;
 
     public DataManager(GlobalContext context) {
@@ -162,10 +164,6 @@ public class DataManager {
 
     public SnapshotFileMetadataRegion getGeneratingSnapshotFileMetadataRegion() {
         return generatingSnapshotFileMetadataRegion;
-    }
-
-    public int getNextIndex() {
-        return nextIndex;
     }
 
     public int getLastIncludeIndex() {
@@ -281,7 +279,7 @@ public class DataManager {
         return term == logEntry.getTerm();
     }
 
-    public Message createAppendLogEntriesMessage(String leaderId, int term, Endpoint endpoint, int size) {
+    public Message createAppendLogEntriesMessage( int term, Endpoint endpoint, int size) {
         int lastIncludeIndex = snapshot.getLastIncludeIndex();
         int lastIncludeTerm = snapshot.getLastIncludeTerm();
         int endpointNextIndex = endpoint.getNextIndex();
@@ -292,10 +290,9 @@ public class DataManager {
             .leaderCommitIndex(commitIndex)
             .term(term)
             .matchComplete(endpoint.isMatchComplete())
-            .leaderId(leaderId)
             .build();
         if (endpoint.isMatchComplete()) {
-            message.setLogEntries(range(endpointNextIndex, endpointNextIndex + size));
+            message.setLogs(range(endpointNextIndex, endpointNextIndex + size));
         }
         int preIndex = lastIncludeIndex;
         int preTerm = lastIncludeTerm;

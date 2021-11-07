@@ -8,17 +8,17 @@ import cn.ttplatform.wh.cmd.GetResultCommand;
 import cn.ttplatform.wh.cmd.KeyValuePair;
 import cn.ttplatform.wh.cmd.SetCommand;
 import cn.ttplatform.wh.cmd.SetResultCommand;
-import cn.ttplatform.wh.cmd.factory.ClusterChangeCommandFactory;
-import cn.ttplatform.wh.cmd.factory.ClusterChangeResultCommandFactory;
-import cn.ttplatform.wh.cmd.factory.EntryFactory;
-import cn.ttplatform.wh.cmd.factory.GetClusterInfoCommandFactory;
-import cn.ttplatform.wh.cmd.factory.GetClusterInfoResultCommandFactory;
-import cn.ttplatform.wh.cmd.factory.GetCommandFactory;
-import cn.ttplatform.wh.cmd.factory.GetResultCommandFactory;
-import cn.ttplatform.wh.cmd.factory.RedirectCommandFactory;
-import cn.ttplatform.wh.cmd.factory.RequestFailedCommandFactory;
-import cn.ttplatform.wh.cmd.factory.SetCommandFactory;
-import cn.ttplatform.wh.cmd.factory.SetResultCommandFactory;
+import cn.ttplatform.wh.cmd.factory.ClusterChangeCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.ClusterChangeResultCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.KVEntrySerializer;
+import cn.ttplatform.wh.cmd.factory.GetClusterInfoCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.GetClusterInfoResultCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.GetCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.GetResultCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.RedirectCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.RequestFailedCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.SetCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.SetResultCommandSerializer;
 import cn.ttplatform.wh.config.RunMode;
 import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.constant.ErrorMessage;
@@ -40,15 +40,15 @@ import cn.ttplatform.wh.handler.SetCommandHandler;
 import cn.ttplatform.wh.message.PreVoteMessage;
 import cn.ttplatform.wh.message.RequestVoteMessage;
 import cn.ttplatform.wh.message.SyncingMessage;
-import cn.ttplatform.wh.message.factory.AppendLogEntriesMessageFactory;
-import cn.ttplatform.wh.message.factory.AppendLogEntriesResultMessageFactory;
-import cn.ttplatform.wh.message.factory.InstallSnapshotMessageFactory;
-import cn.ttplatform.wh.message.factory.InstallSnapshotResultMessageFactory;
-import cn.ttplatform.wh.message.factory.PreVoteMessageFactory;
-import cn.ttplatform.wh.message.factory.PreVoteResultMessageFactory;
-import cn.ttplatform.wh.message.factory.RequestVoteMessageFactory;
-import cn.ttplatform.wh.message.factory.RequestVoteResultMessageFactory;
-import cn.ttplatform.wh.message.factory.SyncingMessageFactory;
+import cn.ttplatform.wh.message.serializer.AppendLogEntriesMessageSerializer;
+import cn.ttplatform.wh.message.serializer.AppendLogEntriesResultMessageSerializer;
+import cn.ttplatform.wh.message.serializer.InstallSnapshotMessageSerializer;
+import cn.ttplatform.wh.message.serializer.InstallSnapshotResultMessageSerializer;
+import cn.ttplatform.wh.message.serializer.PreVoteMessageSerializer;
+import cn.ttplatform.wh.message.serializer.PreVoteResultMessageSerializer;
+import cn.ttplatform.wh.message.serializer.RequestVoteMessageSerializer;
+import cn.ttplatform.wh.message.serializer.RequestVoteResultMessageSerializer;
+import cn.ttplatform.wh.message.serializer.SyncingMessageSerializer;
 import cn.ttplatform.wh.message.handler.AppendLogEntriesMessageHandler;
 import cn.ttplatform.wh.message.handler.AppendLogEntriesResultMessageHandler;
 import cn.ttplatform.wh.message.handler.InstallSnapshotMessageHandler;
@@ -63,7 +63,7 @@ import cn.ttplatform.wh.scheduler.SingleThreadScheduler;
 import cn.ttplatform.wh.support.ChannelPool;
 import cn.ttplatform.wh.support.CommonDistributor;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
-import cn.ttplatform.wh.support.DistributableFactoryRegistry;
+import cn.ttplatform.wh.support.DistributableSerializerRegistry;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Message;
@@ -110,14 +110,14 @@ public class GlobalContext {
     private final Pool<LinkedBuffer> linkedBufferPool;
     private final Pool<ByteBuffer> byteBufferPool;
     private final CommonDistributor distributor;
-    private final DistributableFactoryRegistry factoryManager;
+    private final DistributableSerializerRegistry serializerRegistry;
     private final ThreadPoolExecutor subTaskExecutor;
     private final ThreadPoolExecutor executor;
     private final NioEventLoopGroup boss;
     private final NioEventLoopGroup worker;
     private final StateMachine stateMachine;
     private final DataManager dataManager;
-    private final EntryFactory entryFactory;
+    private final KVEntrySerializer kvEntrySerializer;
     private final ChannelPool channelPool;
     private Node node;
     private Scheduler scheduler;
@@ -139,7 +139,7 @@ public class GlobalContext {
                 properties.getBlockSize(), properties.getByteBufferSizeLimit());
         }
         this.distributor = buildDistributor();
-        this.factoryManager = buildFactoryManager();
+        this.serializerRegistry = buildSerializerRegistry();
         this.executor = new ThreadPoolExecutor(
             1,
             1,
@@ -159,7 +159,7 @@ public class GlobalContext {
         this.worker = new NioEventLoopGroup(properties.getWorkerThreads(), new NamedThreadFactory("worker-"));
         this.stateMachine = new StateMachine(this);
         this.dataManager = new DataManager(this);
-        this.entryFactory = new EntryFactory(this.linkedBufferPool);
+        this.kvEntrySerializer = new KVEntrySerializer(this.linkedBufferPool);
         this.channelPool = new ChannelPool();
     }
 
@@ -182,28 +182,28 @@ public class GlobalContext {
     }
 
 
-    private DistributableFactoryRegistry buildFactoryManager() {
-        DistributableFactoryRegistry manager = new DistributableFactoryRegistry();
-        manager.register(new SetCommandFactory(linkedBufferPool));
-        manager.register(new SetResultCommandFactory(linkedBufferPool));
-        manager.register(new GetCommandFactory(linkedBufferPool));
-        manager.register(new GetResultCommandFactory(linkedBufferPool));
-        manager.register(new RedirectCommandFactory(linkedBufferPool));
-        manager.register(new ClusterChangeCommandFactory(linkedBufferPool));
-        manager.register(new ClusterChangeResultCommandFactory(linkedBufferPool));
-        manager.register(new RequestFailedCommandFactory(linkedBufferPool));
-        manager.register(new GetClusterInfoCommandFactory(linkedBufferPool));
-        manager.register(new GetClusterInfoResultCommandFactory(linkedBufferPool));
-        manager.register(new AppendLogEntriesMessageFactory(linkedBufferPool));
-        manager.register(new AppendLogEntriesResultMessageFactory(linkedBufferPool));
-        manager.register(new RequestVoteMessageFactory(linkedBufferPool));
-        manager.register(new RequestVoteResultMessageFactory(linkedBufferPool));
-        manager.register(new PreVoteMessageFactory(linkedBufferPool));
-        manager.register(new PreVoteResultMessageFactory(linkedBufferPool));
-        manager.register(new InstallSnapshotMessageFactory(linkedBufferPool));
-        manager.register(new InstallSnapshotResultMessageFactory(linkedBufferPool));
-        manager.register(new SyncingMessageFactory(linkedBufferPool));
-        return manager;
+    private DistributableSerializerRegistry buildSerializerRegistry() {
+        DistributableSerializerRegistry registry = new DistributableSerializerRegistry();
+        registry.register(new SetCommandSerializer(linkedBufferPool));
+        registry.register(new SetResultCommandSerializer(linkedBufferPool));
+        registry.register(new GetCommandSerializer(linkedBufferPool));
+        registry.register(new GetResultCommandSerializer(linkedBufferPool));
+        registry.register(new RedirectCommandSerializer(linkedBufferPool));
+        registry.register(new ClusterChangeCommandSerializer(linkedBufferPool));
+        registry.register(new ClusterChangeResultCommandSerializer(linkedBufferPool));
+        registry.register(new RequestFailedCommandSerializer(linkedBufferPool));
+        registry.register(new GetClusterInfoCommandSerializer(linkedBufferPool));
+        registry.register(new GetClusterInfoResultCommandSerializer(linkedBufferPool));
+        registry.register(new AppendLogEntriesMessageSerializer(linkedBufferPool));
+        registry.register(new AppendLogEntriesResultMessageSerializer(linkedBufferPool));
+        registry.register(new RequestVoteMessageSerializer(linkedBufferPool));
+        registry.register(new RequestVoteResultMessageSerializer(linkedBufferPool));
+        registry.register(new PreVoteMessageSerializer(linkedBufferPool));
+        registry.register(new PreVoteResultMessageSerializer(linkedBufferPool));
+        registry.register(new InstallSnapshotMessageSerializer(linkedBufferPool));
+        registry.register(new InstallSnapshotResultMessageSerializer(linkedBufferPool));
+        registry.register(new SyncingMessageSerializer(linkedBufferPool));
+        return registry;
     }
 
     public void enterClusterMode() {
@@ -235,7 +235,6 @@ public class GlobalContext {
             int newCounts = cluster.inNewConfig(selfId) ? 1 : 0;
             node.changeToFollower(currentTerm, null, null, oldCounts, newCounts, 0L);
             PreVoteMessage preVoteMessage = PreVoteMessage.builder()
-                .nodeId(selfId)
                 .lastLogTerm(dataManager.getTermOfLastLog())
                 .lastLogIndex(dataManager.getIndexOfLastLog())
                 .build();
@@ -248,7 +247,6 @@ public class GlobalContext {
         String selfId = node.getSelfId();
         node.changeToCandidate(term, cluster.inOldConfig(selfId) ? 1 : 0, cluster.inOldConfig(selfId) ? 1 : 0);
         RequestVoteMessage requestVoteMessage = RequestVoteMessage.builder()
-            .candidateId(selfId)
             .lastLogIndex(dataManager.getIndexOfLastLog())
             .lastLogTerm(dataManager.getTermOfLastLog())
             .term(term)
@@ -281,8 +279,7 @@ public class GlobalContext {
 
     public void doLogReplication(Endpoint endpoint, int currentTerm) {
 
-        Message message = dataManager
-            .createAppendLogEntriesMessage(node.getSelfId(), currentTerm, endpoint, properties.getMaxTransferLogs());
+        Message message = dataManager.createAppendLogEntriesMessage(currentTerm, endpoint, properties.getMaxTransferLogs());
         if (message == null) {
             // start snapshot replication
             message = dataManager
@@ -564,7 +561,7 @@ public class GlobalContext {
         KeyValuePair keyValuePair;
         if (setCmd == null) {
             byte[] command = log.getCommand();
-            keyValuePair = entryFactory.create(command, command.length);
+            keyValuePair = kvEntrySerializer.deserialize(command, command.length);
             stateMachine.set(keyValuePair.getKey(), keyValuePair.getValue());
         } else {
             keyValuePair = setCmd.getKeyValuePair();

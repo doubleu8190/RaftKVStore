@@ -45,7 +45,7 @@ public class RequestVoteMessageHandler extends AbstractDistributableHandler {
         int currentTerm = role.getTerm();
         int lastLogIndex = message.getLastLogIndex();
         int lastLogTerm = message.getLastLogTerm();
-        String candidateId = message.getCandidateId();
+        String candidateId = message.getSourceId();
         RequestVoteResultMessage requestVoteResultMessage = RequestVoteResultMessage.builder()
             .isVoted(Boolean.FALSE).term(currentTerm)
             .build();

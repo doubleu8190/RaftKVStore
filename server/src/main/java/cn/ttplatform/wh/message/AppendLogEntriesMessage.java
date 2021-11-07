@@ -23,14 +23,13 @@ public class AppendLogEntriesMessage extends AbstractMessage {
 
     private int term;
     private boolean matchComplete;
-    private String leaderId;
     private int preLogIndex;
     private int preLogTerm;
     private int leaderCommitIndex;
-    private List<Log> logEntries;
+    private List<Log> logs;
 
     public int getLastIndex() {
-        return logEntries == null || logEntries.isEmpty() ? getPreLogIndex() : logEntries.get(logEntries.size() - 1).getIndex();
+        return logs == null || logs.isEmpty() ? getPreLogIndex() : logs.get(logs.size() - 1).getIndex();
     }
 
     @Override
@@ -43,11 +42,11 @@ public class AppendLogEntriesMessage extends AbstractMessage {
         return "AppendLogEntriesMessage{" +
                 "term=" + term +
                 ", matchComplete=" + matchComplete +
-                ", leaderId='" + leaderId + '\'' +
+                ", leaderId='" + sourceId + '\'' +
                 ", preLogIndex=" + preLogIndex +
                 ", preLogTerm=" + preLogTerm +
                 ", leaderCommitIndex=" + leaderCommitIndex +
-                ", logEntries=" + (logEntries == null ? 0 : logEntries.size()) +
+                ", logs=" + (logs == null ? 0 : logs.size()) +
                 '}';
     }
 }

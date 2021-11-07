@@ -1,6 +1,6 @@
 package cn.ttplatform.wh.factory;
 
-import cn.ttplatform.wh.message.factory.RequestVoteMessageFactory;
+import cn.ttplatform.wh.message.serializer.RequestVoteMessageSerializer;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.message.RequestVoteMessage;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
@@ -22,12 +22,12 @@ import org.junit.Test;
 @Slf4j
 public class RequestVoteMessageFactoryTest {
 
-    RequestVoteMessageFactory factory;
+    RequestVoteMessageSerializer factory;
 
     @Before
     public void setUp() throws Exception {
         Pool<LinkedBuffer> pool = new FixedSizeLinkedBufferPool(10);
-        factory = new RequestVoteMessageFactory(pool);
+        factory = new RequestVoteMessageSerializer(pool);
     }
 
     @Test
@@ -38,24 +38,24 @@ public class RequestVoteMessageFactoryTest {
     @Test
     public void create() {
         RequestVoteMessage message = RequestVoteMessage.builder()
-            .term(0).candidateId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
-        byte[] bytes = factory.getBytes(message);
+            .term(0).sourceId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+        byte[] bytes = factory.serialize(message);
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.create(bytes, bytes.length));
+        IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
     @Test
     public void testCreate() {
         RequestVoteMessage message = RequestVoteMessage.builder()
-            .term(0).candidateId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
-        byte[] bytes = factory.getBytes(message);
+            .term(0).sourceId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+        byte[] bytes = factory.serialize(message);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
         byteBuffer.flip();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> {
-            factory.create(byteBuffer, bytes.length);
+            factory.deserialize(byteBuffer, bytes.length);
             byteBuffer.position(0);
         });
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -64,21 +64,21 @@ public class RequestVoteMessageFactoryTest {
     @Test
     public void getBytes() {
         RequestVoteMessage message = RequestVoteMessage.builder()
-            .term(0).candidateId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+            .term(0).sourceId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.getBytes(message));
+        IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
     @Test
     public void testGetBytes() {
         RequestVoteMessage message = RequestVoteMessage.builder()
-            .term(0).candidateId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+            .term(0).sourceId("A").lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
         UnpooledByteBufAllocator allocator = new UnpooledByteBufAllocator(true);
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> {
-            factory.getBytes(message, byteBuf);
+            factory.serialize(message, byteBuf);
             byteBuf.clear();
         });
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);

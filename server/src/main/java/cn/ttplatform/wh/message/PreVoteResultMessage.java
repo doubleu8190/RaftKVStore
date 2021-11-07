@@ -20,7 +20,6 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 public class PreVoteResultMessage extends AbstractMessage {
 
-    private int term;
     private boolean isVoted;
 
     @Override

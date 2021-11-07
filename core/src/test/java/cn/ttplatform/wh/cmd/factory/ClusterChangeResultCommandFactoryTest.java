@@ -22,12 +22,12 @@ import org.junit.Test;
 @Slf4j
 public class ClusterChangeResultCommandFactoryTest {
 
-    ClusterChangeResultCommandFactory factory;
+    ClusterChangeResultCommandSerializer factory;
 
     @Before
     public void setUp() throws Exception {
         Pool<LinkedBuffer> pool = new FixedSizeLinkedBufferPool(10);
-        factory = new ClusterChangeResultCommandFactory(pool);
+        factory = new ClusterChangeResultCommandSerializer(pool);
     }
 
     @Test
@@ -39,9 +39,9 @@ public class ClusterChangeResultCommandFactoryTest {
     public void create() {
         ClusterChangeResultCommand message = ClusterChangeResultCommand.builder().id(UUID.randomUUID().toString())
             .done(true).build();
-        byte[] bytes = factory.getBytes(message);
+        byte[] bytes = factory.serialize(message);
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.create(bytes, bytes.length));
+        IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
@@ -49,13 +49,13 @@ public class ClusterChangeResultCommandFactoryTest {
     public void testCreate() {
         ClusterChangeResultCommand message = ClusterChangeResultCommand.builder().id(UUID.randomUUID().toString())
             .done(true).build();
-        byte[] bytes = factory.getBytes(message);
+        byte[] bytes = factory.serialize(message);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
         byteBuffer.flip();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> {
-            factory.create(byteBuffer, bytes.length);
+            factory.deserialize(byteBuffer, bytes.length);
             byteBuffer.position(0);
         });
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -66,7 +66,7 @@ public class ClusterChangeResultCommandFactoryTest {
         ClusterChangeResultCommand message = ClusterChangeResultCommand.builder().id(UUID.randomUUID().toString())
             .done(true).build();
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.getBytes(message));
+        IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
@@ -78,7 +78,7 @@ public class ClusterChangeResultCommandFactoryTest {
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> {
-            factory.getBytes(message, byteBuf);
+            factory.serialize(message, byteBuf);
             byteBuf.clear();
         });
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);

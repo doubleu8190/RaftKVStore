@@ -29,7 +29,7 @@ public class DataManagerTest {
     public void setUp() throws Exception {
         ServerProperties properties = new ServerProperties();
         GlobalContext context = GlobalContext.builder().properties(properties)
-                .byteBufferPool(new DirectByteBufferPool(10, 1024 * 1024, 16 * 1024 * 1024)).build();
+            .byteBufferPool(new DirectByteBufferPool(10, 1024 * 1024, 16 * 1024 * 1024)).build();
         Cluster cluster = new Cluster(context);
         context.setCluster(cluster);
         dataManager = new DataManager(context);
@@ -83,10 +83,10 @@ public class DataManagerTest {
     public void createAppendLogEntriesMessage() {
         pendingLogs();
         Endpoint endpoint = new Endpoint("b,localhost,1111,2222");
-        Message message = dataManager.createAppendLogEntriesMessage("a", 1, endpoint, 100);
+        Message message = dataManager.createAppendLogEntriesMessage(1, endpoint, 100);
         Assert.assertNull(message);
         endpoint.setNextIndex(1);
-        message = dataManager.createAppendLogEntriesMessage("a", 1, endpoint, 100);
+        message = dataManager.createAppendLogEntriesMessage(1, endpoint, 100);
         Assert.assertNotNull(message);
     }
 

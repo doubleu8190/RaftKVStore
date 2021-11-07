@@ -2,7 +2,7 @@ package cn.ttplatform.wh;
 
 import cn.ttplatform.wh.constant.ErrorMessage;
 import cn.ttplatform.wh.exception.MessageParseException;
-import cn.ttplatform.wh.support.Factory;
+import cn.ttplatform.wh.support.Serializer;
 import cn.ttplatform.wh.support.Pool;
 import io.netty.buffer.ByteBuf;
 import io.protostuff.*;
@@ -23,16 +23,16 @@ public class StateMachine {
 
     private Map<String, String> data = new HashMap<>(512);
     private final Map<String, String> tempBuffer = new HashMap<>(128);
-    private final DataFactory dataFactory;
+    private final DataSerializer dataFactory;
     private volatile boolean generating;
     private volatile int applied;
 
     public StateMachine(GlobalContext context) {
-        this.dataFactory = new DataFactory(context.getLinkedBufferPool());
+        this.dataFactory = new DataSerializer(context.getLinkedBufferPool());
     }
 
     public StateMachine(Pool<LinkedBuffer> pool) {
-        this.dataFactory = new DataFactory(pool);
+        this.dataFactory = new DataSerializer(pool);
     }
 
     public String get(String key) {
@@ -92,35 +92,35 @@ public class StateMachine {
     }
 
     public byte[] generateSnapshotData() {
-        return dataFactory.getBytes(data);
+        return dataFactory.serialize(data);
     }
 
     public void applySnapshotData(ByteBuffer snapshot, int lastIncludeIndex) {
-        data = dataFactory.create(snapshot, snapshot.limit());
+        data = dataFactory.deserialize(snapshot, snapshot.limit());
         applied = lastIncludeIndex;
         log.info("apply snapshot that lastIncludeIndex is {}.", lastIncludeIndex);
     }
 
-    private static class DataFactory implements Factory<Map<String, String>> {
+    private static class DataSerializer implements Serializer<Map<String, String>> {
 
         private final MessageMapSchema<String, String> mapSchema;
         private final Pool<LinkedBuffer> pool;
 
-        public DataFactory(Pool<LinkedBuffer> pool) {
+        public DataSerializer(Pool<LinkedBuffer> pool) {
             Schema<String> stringSchema = RuntimeSchema.getSchema(String.class);
             mapSchema = new MessageMapSchema<>(stringSchema, stringSchema);
             this.pool = pool;
         }
 
         @Override
-        public Map<String, String> create(byte[] content, int length) {
+        public Map<String, String> deserialize(byte[] content, int length) {
             Map<String, String> data = new HashMap<>(512);
             ProtostuffIOUtil.mergeFrom(content, 0, length, data, mapSchema);
             return data;
         }
 
         @Override
-        public Map<String, String> create(ByteBuffer byteBuffer, int contentLength) {
+        public Map<String, String> deserialize(ByteBuffer byteBuffer, int contentLength) {
             int limit = byteBuffer.limit();
             try {
                 int position = byteBuffer.position();
@@ -138,7 +138,7 @@ public class StateMachine {
         }
 
         @Override
-        public byte[] getBytes(Map<String, String> data) {
+        public byte[] serialize(Map<String, String> data) {
             LinkedBuffer buffer = pool.allocate();
             try {
                 return ProtostuffIOUtil.toByteArray(data, mapSchema, buffer);
@@ -150,7 +150,7 @@ public class StateMachine {
         }
 
         @Override
-        public void getBytes(Map<String, String> obj, ByteBuf byteBuffer) {
+        public void serialize(Map<String, String> obj, ByteBuf byteBuffer) {
             throw new UnsupportedOperationException();
         }
     }

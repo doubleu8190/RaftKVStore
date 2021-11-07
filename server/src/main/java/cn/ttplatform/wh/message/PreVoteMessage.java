@@ -21,7 +21,6 @@ import lombok.experimental.SuperBuilder;
 public class PreVoteMessage extends AbstractMessage {
 
     private int term;
-    private String nodeId;
     private int lastLogTerm;
     private int lastLogIndex;
 

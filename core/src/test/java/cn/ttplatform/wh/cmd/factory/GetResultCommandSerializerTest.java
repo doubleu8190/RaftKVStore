@@ -1,14 +1,14 @@
-package cn.ttplatform.wh.factory;
+package cn.ttplatform.wh.cmd.factory;
 
-import cn.ttplatform.wh.message.serializer.RequestVoteResultMessageSerializer;
+import cn.ttplatform.wh.cmd.GetResultCommand;
 import cn.ttplatform.wh.constant.DistributableType;
-import cn.ttplatform.wh.message.RequestVoteResultMessage;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.protostuff.LinkedBuffer;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -17,28 +17,27 @@ import org.junit.Test;
 
 /**
  * @author Wang Hao
- * @date 2021/5/11 23:03
+ * @date 2021/5/11 23:19
  */
 @Slf4j
-public class RequestVoteResultMessageFactoryTest {
+public class GetResultCommandSerializerTest {
 
-    RequestVoteResultMessageSerializer factory;
+    GetResultCommandSerializer factory;
 
     @Before
     public void setUp() throws Exception {
         Pool<LinkedBuffer> pool = new FixedSizeLinkedBufferPool(10);
-        factory = new RequestVoteResultMessageSerializer(pool);
+        factory = new GetResultCommandSerializer(pool);
     }
 
     @Test
     public void getFactoryType() {
-        Assert.assertEquals(DistributableType.REQUEST_VOTE_RESULT, factory.getFactoryType());
+        Assert.assertEquals(DistributableType.GET_COMMAND_RESULT, factory.getFactoryType());
     }
 
     @Test
     public void create() {
-        RequestVoteResultMessage message = RequestVoteResultMessage.builder()
-            .term(0).sourceId("A").isVoted(true).build();
+        GetResultCommand message = GetResultCommand.builder().id(UUID.randomUUID().toString()).value("VALUE").build();
         byte[] bytes = factory.serialize(message);
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
@@ -47,8 +46,7 @@ public class RequestVoteResultMessageFactoryTest {
 
     @Test
     public void testCreate() {
-        RequestVoteResultMessage message = RequestVoteResultMessage.builder()
-            .term(0).sourceId("A").isVoted(true).build();
+        GetResultCommand message = GetResultCommand.builder().id(UUID.randomUUID().toString()).value("VALUE").build();
         byte[] bytes = factory.serialize(message);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
@@ -63,8 +61,7 @@ public class RequestVoteResultMessageFactoryTest {
 
     @Test
     public void getBytes() {
-        RequestVoteResultMessage message = RequestVoteResultMessage.builder()
-            .term(0).sourceId("A").isVoted(true).build();
+        GetResultCommand message = GetResultCommand.builder().id(UUID.randomUUID().toString()).value("VALUE").build();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -72,8 +69,7 @@ public class RequestVoteResultMessageFactoryTest {
 
     @Test
     public void testGetBytes() {
-        RequestVoteResultMessage message = RequestVoteResultMessage.builder()
-            .term(0).sourceId("A").isVoted(true).build();
+        GetResultCommand message = GetResultCommand.builder().id(UUID.randomUUID().toString()).value("VALUE").build();
         UnpooledByteBufAllocator allocator = new UnpooledByteBufAllocator(true);
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();

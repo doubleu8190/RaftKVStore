@@ -44,31 +44,23 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         int term = message.getTerm();
         Role role = context.getNode().getRole();
         int currentTerm = role.getTerm();
-        AppendLogEntriesResultMessage appendLogEntriesResultMessage = AppendLogEntriesResultMessage.builder()
-                .term(currentTerm)
-                .lastLogIndex(message.getLastIndex())
-                .success(false).build();
         if (term < currentTerm) {
-            return appendLogEntriesResultMessage;
+            return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), false);
         }
         if (term > currentTerm) {
-            appendLogEntriesResultMessage.setTerm(term);
-            appendLogEntriesResultMessage.setSuccess(appendEntries(message));
-            return appendLogEntriesResultMessage;
+            return new AppendLogEntriesResultMessage(term, message.getLastIndex(), appendEntries(message));
         }
-        RoleType roleType = role.getType();
-        if (roleType == RoleType.LEADER) {
-            log.warn("receive append entries message from another leader {}, ignore", message.getLeaderId());
-            return appendLogEntriesResultMessage;
+        if (role.getType() == RoleType.LEADER) {
+            log.warn("receive append entries message from another leader {}, ignore", message.getSourceId());
+            return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), false);
         }
-        appendLogEntriesResultMessage.setSuccess(appendEntries(message));
-        return appendLogEntriesResultMessage;
+        return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), appendEntries(message));
     }
 
     private boolean appendEntries(AppendLogEntriesMessage message) {
         Node node = context.getNode();
 //        String currentLeaderId = node.isFollower() ? ((Follower) node.getRole()).getLeaderId() : "";
-        String newLeaderId = message.getLeaderId();
+        String newLeaderId = message.getSourceId();
         node.changeToFollower(message.getTerm(), newLeaderId, null, 0, 0, System.currentTimeMillis());
         DataManager dataManager = context.getDataManager();
         int preLogIndex = message.getPreLogIndex();
@@ -82,7 +74,7 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         }
         if (checkIndexAndTermIfMatched) {
             log.debug("checkIndexAndTerm Matched");
-            dataManager.pendingLogs(preLogIndex, message.getLogEntries());
+            dataManager.pendingLogs(preLogIndex, message.getLogs());
             if (dataManager.advanceCommitIndex(message.getLeaderCommitIndex(), message.getTerm())) {
                 context.advanceLastApplied(message.getLeaderCommitIndex());
             }

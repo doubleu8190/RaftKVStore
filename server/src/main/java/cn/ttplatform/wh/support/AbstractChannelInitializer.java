@@ -25,7 +25,7 @@ public abstract class AbstractChannelInitializer extends ChannelInitializer<Sock
         int writeIdleTimeout = context.getProperties().getWriteIdleTimeout();
         int allIdleTimeout = context.getProperties().getAllIdleTimeout();
         pipeline.addLast(new IdleStateHandler(readIdleTimeout, writeIdleTimeout, allIdleTimeout));
-        pipeline.addLast(new DistributableCodec(context.getFactoryManager()));
+        pipeline.addLast(new DistributableCodec(context.getSerializerRegistry()));
         custom(pipeline);
     }
 

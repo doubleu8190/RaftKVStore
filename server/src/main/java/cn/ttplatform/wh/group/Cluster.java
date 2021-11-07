@@ -27,8 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 public class Cluster {
 
     private final String selfId;
-    private final NewConfigFactory newConfigFactory;
-    private final OldNewConfigFactory oldNewConfigFactory;
+    private final NewConfigSerializer newConfigFactory;
+    private final OldNewConfigSerializer oldNewConfigFactory;
     private final Map<String, Endpoint> endpointMap;
     @Setter
     @Getter
@@ -47,8 +47,8 @@ public class Cluster {
         this.selfId = context.getProperties().getNodeId();
         this.phase = Phase.STABLE;
         Pool<LinkedBuffer> linkedBufferPool = context.getLinkedBufferPool();
-        this.newConfigFactory = new NewConfigFactory(linkedBufferPool);
-        this.oldNewConfigFactory = new OldNewConfigFactory(linkedBufferPool);
+        this.newConfigFactory = new NewConfigSerializer(linkedBufferPool);
+        this.oldNewConfigFactory = new OldNewConfigSerializer(linkedBufferPool);
     }
 
     private Set<Endpoint> initClusterEndpoints(ServerProperties properties) {
@@ -179,11 +179,11 @@ public class Cluster {
 
 
     public OldNewConfig createOldNewConfig(byte[] config) {
-        return oldNewConfigFactory.create(config, config.length);
+        return oldNewConfigFactory.deserialize(config, config.length);
     }
 
     public NewConfig createNewConfig(byte[] config) {
-        return newConfigFactory.create(config, config.length);
+        return newConfigFactory.deserialize(config, config.length);
     }
 
     public byte[] getOldNewConfigBytes() {
@@ -192,14 +192,14 @@ public class Cluster {
         Set<EndpointMetaData> newConfigs = new HashSet<>(newConfigMap.size());
         newConfigMap.forEach((id, endpoint) -> newConfigs.add(endpoint.getMetaData()));
         OldNewConfig oldNewConfig = new OldNewConfig(oldConfigs, newConfigs);
-        return oldNewConfigFactory.getBytes(oldNewConfig);
+        return oldNewConfigFactory.serialize(oldNewConfig);
     }
 
     public byte[] getNewConfigBytes() {
         List<EndpointMetaData> newConfigs = new ArrayList<>(newConfigMap.size());
         newConfigMap.forEach((id, endpoint) -> newConfigs.add(endpoint.getMetaData()));
         NewConfig newConfig = new NewConfig(newConfigs);
-        return newConfigFactory.getBytes(newConfig);
+        return newConfigFactory.serialize(newConfig);
     }
 
 }

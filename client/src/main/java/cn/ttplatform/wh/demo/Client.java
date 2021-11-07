@@ -3,7 +3,7 @@ package cn.ttplatform.wh.demo;
 import cn.ttplatform.wh.cmd.*;
 import cn.ttplatform.wh.cmd.factory.*;
 import cn.ttplatform.wh.support.DistributableCodec;
-import cn.ttplatform.wh.support.DistributableFactoryRegistry;
+import cn.ttplatform.wh.support.DistributableSerializerRegistry;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import io.netty.bootstrap.Bootstrap;
@@ -76,17 +76,17 @@ public class Client {
     public Client(Watcher watcher) {
         this.worker = new NioEventLoopGroup(1);
         Pool<LinkedBuffer> bufferPool = new FixedSizeLinkedBufferPool(3);
-        DistributableFactoryRegistry factoryManager = new DistributableFactoryRegistry();
-        factoryManager.register(new GetClusterInfoResultCommandFactory(bufferPool));
-        factoryManager.register(new GetClusterInfoCommandFactory(bufferPool));
-        factoryManager.register(new RedirectCommandFactory(bufferPool));
-        factoryManager.register(new RequestFailedCommandFactory(bufferPool));
-        factoryManager.register(new ClusterChangeCommandFactory(bufferPool));
-        factoryManager.register(new ClusterChangeResultCommandFactory(bufferPool));
-        factoryManager.register(new SetCommandFactory(bufferPool));
-        factoryManager.register(new GetCommandFactory(bufferPool));
-        factoryManager.register(new SetResultCommandFactory(bufferPool));
-        factoryManager.register(new GetResultCommandFactory(bufferPool));
+        DistributableSerializerRegistry factoryManager = new DistributableSerializerRegistry();
+        factoryManager.register(new GetClusterInfoResultCommandSerializer(bufferPool));
+        factoryManager.register(new GetClusterInfoCommandSerializer(bufferPool));
+        factoryManager.register(new RedirectCommandSerializer(bufferPool));
+        factoryManager.register(new RequestFailedCommandSerializer(bufferPool));
+        factoryManager.register(new ClusterChangeCommandSerializer(bufferPool));
+        factoryManager.register(new ClusterChangeResultCommandSerializer(bufferPool));
+        factoryManager.register(new SetCommandSerializer(bufferPool));
+        factoryManager.register(new GetCommandSerializer(bufferPool));
+        factoryManager.register(new SetResultCommandSerializer(bufferPool));
+        factoryManager.register(new GetResultCommandSerializer(bufferPool));
         bootstrap = new Bootstrap()
                 .group(worker)
                 .channel(NioSocketChannel.class)

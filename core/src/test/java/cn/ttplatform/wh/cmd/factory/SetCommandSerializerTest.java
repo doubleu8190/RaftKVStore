@@ -1,6 +1,7 @@
 package cn.ttplatform.wh.cmd.factory;
 
-import cn.ttplatform.wh.cmd.SetResultCommand;
+import cn.ttplatform.wh.cmd.KeyValuePair;
+import cn.ttplatform.wh.cmd.SetCommand;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.Pool;
@@ -17,28 +18,34 @@ import org.junit.Test;
 
 /**
  * @author Wang Hao
- * @date 2021/5/11 23:23
+ * @date 2021/5/11 0:29
  */
 @Slf4j
-public class SetResultCommandFactoryTest {
+public class SetCommandSerializerTest {
 
-    SetResultCommandSerializer factory;
+    SetCommandSerializer factory;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         Pool<LinkedBuffer> pool = new FixedSizeLinkedBufferPool(10);
-        factory = new SetResultCommandSerializer(pool);
+        factory = new SetCommandSerializer(pool);
     }
 
     @Test
     public void getFactoryType() {
-        Assert.assertEquals(DistributableType.SET_COMMAND_RESULT, factory.getFactoryType());
+        Assert.assertEquals(DistributableType.SET_COMMAND, factory.getFactoryType());
     }
 
     @Test
     public void create() {
-        SetResultCommand message = SetResultCommand.builder().id(UUID.randomUUID().toString()).result(true).build();
-        byte[] bytes = factory.serialize(message);
+        StringBuilder value = new StringBuilder();
+        while (value.length() < 256) {
+            value.append(UUID.randomUUID());
+        }
+        String s = value.substring(0, 256);
+        String id = UUID.randomUUID().toString();
+        SetCommand setCommand = SetCommand.builder().id(id).keyValuePair(new KeyValuePair("WANGHAO",s)).build();
+        byte[] bytes = factory.serialize(setCommand);
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -46,8 +53,14 @@ public class SetResultCommandFactoryTest {
 
     @Test
     public void testCreate() {
-        SetResultCommand message = SetResultCommand.builder().id(UUID.randomUUID().toString()).result(true).build();
-        byte[] bytes = factory.serialize(message);
+        StringBuilder value = new StringBuilder();
+        while (value.length() < 256) {
+            value.append(UUID.randomUUID());
+        }
+        String s = value.substring(0, 256);
+        String id = UUID.randomUUID().toString();
+        SetCommand setCommand = SetCommand.builder().id(id).keyValuePair(new KeyValuePair("WANGHAO",s)).build();
+        byte[] bytes = factory.serialize(setCommand);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
         byteBuffer.flip();
@@ -61,15 +74,27 @@ public class SetResultCommandFactoryTest {
 
     @Test
     public void getBytes() {
-        SetResultCommand message = SetResultCommand.builder().id(UUID.randomUUID().toString()).result(true).build();
+        StringBuilder value = new StringBuilder();
+        while (value.length() < 256) {
+            value.append(UUID.randomUUID());
+        }
+        String s = value.substring(0, 256);
+        String id = UUID.randomUUID().toString();
+        SetCommand setCommand = SetCommand.builder().id(id).keyValuePair(new KeyValuePair("WANGHAO",s)).build();
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
+        IntStream.range(0, 10000).forEach(index -> factory.serialize(setCommand));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
     @Test
     public void testGetBytes() {
-        SetResultCommand message = SetResultCommand.builder().id(UUID.randomUUID().toString()).result(true).build();
+        StringBuilder value = new StringBuilder();
+        while (value.length() < 256) {
+            value.append(UUID.randomUUID());
+        }
+        String s = value.substring(0, 256);
+        String id = UUID.randomUUID().toString();
+        SetCommand message = SetCommand.builder().id(id).keyValuePair(new KeyValuePair("WANGHAO",s)).build();
         UnpooledByteBufAllocator allocator = new UnpooledByteBufAllocator(true);
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();

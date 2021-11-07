@@ -21,7 +21,6 @@ import lombok.experimental.SuperBuilder;
 public class RequestVoteMessage extends AbstractMessage{
 
     private int term;
-    private String candidateId;
     private int lastLogIndex;
     private int lastLogTerm;
 

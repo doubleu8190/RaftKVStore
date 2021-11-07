@@ -1,6 +1,6 @@
 package cn.ttplatform.wh.factory;
 
-import cn.ttplatform.wh.message.factory.SyncingMessageFactory;
+import cn.ttplatform.wh.message.serializer.SyncingMessageSerializer;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.message.SyncingMessage;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
@@ -22,12 +22,12 @@ import org.junit.Test;
 @Slf4j
 public class SyncingMessageFactoryTest {
 
-    SyncingMessageFactory factory;
+    SyncingMessageSerializer factory;
 
     @Before
     public void setUp() throws Exception {
         Pool<LinkedBuffer> pool = new FixedSizeLinkedBufferPool(10);
-        factory = new SyncingMessageFactory(pool);
+        factory = new SyncingMessageSerializer(pool);
     }
 
     @Test
@@ -38,22 +38,22 @@ public class SyncingMessageFactoryTest {
     @Test
     public void create() {
         SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
-        byte[] bytes = factory.getBytes(message);
+        byte[] bytes = factory.serialize(message);
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.create(bytes, bytes.length));
+        IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
     @Test
     public void testCreate() {
         SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
-        byte[] bytes = factory.getBytes(message);
+        byte[] bytes = factory.serialize(message);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
         byteBuffer.flip();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> {
-            factory.create(byteBuffer, bytes.length);
+            factory.deserialize(byteBuffer, bytes.length);
             byteBuffer.position(0);
         });
         log.info("deserialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -63,7 +63,7 @@ public class SyncingMessageFactoryTest {
     public void getBytes() {
         SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
         long begin = System.nanoTime();
-        IntStream.range(0, 10000).forEach(index -> factory.getBytes(message));
+        IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
     }
 
@@ -74,7 +74,7 @@ public class SyncingMessageFactoryTest {
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> {
-            factory.getBytes(message, byteBuf);
+            factory.serialize(message, byteBuf);
             byteBuf.clear();
         });
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
