@@ -303,7 +303,6 @@ public class GlobalContext {
     }
 
     public void sendCommand(Message message, Endpoint endpoint) {
-
     }
 
     public void sendMessage(Message message, String nodeId) {

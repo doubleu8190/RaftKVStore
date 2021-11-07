@@ -43,7 +43,7 @@ public class InstallSnapshotResultMessageHandler extends AbstractDistributableHa
         if (term < currentTerm) {
             return;
         }
-        Endpoint endpoint = context.getCluster().find(message.getSourceId());
+        Endpoint endpoint = context.getEndpoint(message.getSourceId());
         if (endpoint == null) {
             log.warn("endpoint[{}] is not in cluster.", message.getSourceId());
             return;

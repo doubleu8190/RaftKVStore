@@ -2,17 +2,12 @@ package cn.ttplatform.wh.config;
 
 import cn.ttplatform.wh.exception.OperateFileException;
 import io.netty.channel.EventLoopGroup;
-import lombok.Data;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.helpers.Loader;
-import org.apache.log4j.helpers.OptionConverter;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.util.Properties;
 import java.util.UUID;
+import lombok.Data;
 
 /**
  * @author Wang Hao
@@ -21,12 +16,15 @@ import java.util.UUID;
 @Data
 public class ServerProperties {
 
+
     /**
      * an unique id
      */
     private String nodeId;
 
     private RunMode mode;
+
+    private String clusterInfo;
 
     /**
      * The service will listen for connections from this host
@@ -108,8 +106,6 @@ public class ServerProperties {
 
     private int allIdleTimeout;
 
-    private String clusterInfo;
-
     private boolean useDirectByteBuffer;
 
     private int byteBufferPoolSize;
@@ -146,24 +142,20 @@ public class ServerProperties {
         } catch (IOException e) {
             throw new OperateFileException(e.getMessage());
         }
-        try (FileInputStream fis = new FileInputStream(file)) {
-            OptionConverter.selectAndConfigure(fis, null, LogManager.getLoggerRepository());
-        } catch (IOException e) {
-            throw new OperateFileException(e.getMessage());
-        }
-
+        Log4jConfiguration log4jConfiguration = new Log4jConfiguration(properties);
+        log4jConfiguration.configure();
     }
 
     public ServerProperties() {
         Properties properties = new Properties();
         loadProperties(properties);
-        URL resource = Loader.getResource("log4j.properties");
-        OptionConverter.selectAndConfigure(resource, null, LogManager.getLoggerRepository());
+        Log4jConfiguration log4jConfiguration = new Log4jConfiguration(properties);
+        log4jConfiguration.configure();
     }
 
     private void loadProperties(Properties properties) {
         nodeId = properties.getProperty("nodeId", UUID.randomUUID().toString());
-        String modeProperty = properties.getProperty("mode", "single");
+        String modeProperty = properties.getProperty("mode", "singleton");
         if (RunMode.SINGLE.toString().equals(modeProperty)) {
             mode = RunMode.SINGLE;
         } else {
@@ -182,7 +174,8 @@ public class ServerProperties {
         logReplicationInterval = Long.parseLong(properties.getProperty("logReplicationInterval", "1000"));
         retryTimeout = Long.parseLong(properties.getProperty("retryTimeout", "900"));
         base = new File(properties.getProperty("basePath", System.getProperty("user.home")));
-        snapshotGenerateThreshold = Integer.parseInt(properties.getProperty("snapshotGenerateThreshold", String.valueOf(1024 * 1024 * 10)));
+        snapshotGenerateThreshold = Integer
+            .parseInt(properties.getProperty("snapshotGenerateThreshold", String.valueOf(1024 * 1024 * 10)));
         maxTransferLogs = Integer.parseInt(properties.getProperty("maxTransferLogs", "10000"));
         maxTransferSize = Integer.parseInt(properties.getProperty("maxTransferSize", "10240"));
         linkedBuffPollSize = Integer.parseInt(properties.getProperty("linkedBuffPollSize", "16"));
