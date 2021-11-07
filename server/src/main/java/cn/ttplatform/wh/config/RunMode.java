@@ -8,9 +8,9 @@ public enum RunMode {
     /*
     Single mode
      */
-    SINGLE,
+    SINGLETON,
     /*
     cluster mode
      */
-    CLUSTER;
+    CLUSTER
 }

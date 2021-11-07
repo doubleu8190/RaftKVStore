@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-import java.util.UUID;
 import lombok.Data;
 
 /**
@@ -15,7 +14,6 @@ import lombok.Data;
  */
 @Data
 public class ServerProperties {
-
 
     /**
      * an unique id
@@ -130,68 +128,78 @@ public class ServerProperties {
     private int logIndexCacheSize;
 
     private long lazyFlushInterval;
+
     private double lazyFlushThreshold;
 
+    public ServerProperties() {
+        Properties properties = new Properties();
+        configure(properties);
+        afterConfigure(properties);
+    }
 
     public ServerProperties(String configPath) {
         Properties properties = new Properties();
         File file = new File(configPath);
         try (FileInputStream fis = new FileInputStream(file)) {
             properties.load(fis);
-            loadProperties(properties);
         } catch (IOException e) {
             throw new OperateFileException(e.getMessage());
         }
-        Log4jConfiguration log4jConfiguration = new Log4jConfiguration(properties);
-        log4jConfiguration.configure();
+        configure(properties);
+        afterConfigure(properties);
     }
 
-    public ServerProperties() {
-        Properties properties = new Properties();
-        loadProperties(properties);
-        Log4jConfiguration log4jConfiguration = new Log4jConfiguration(properties);
-        log4jConfiguration.configure();
+    private void configure(Properties properties){
+        ClusterConfiguration clusterConfiguration = new ClusterConfiguration();
+        clusterConfiguration.configure(properties);
+        NettyConfiguration nettyConfiguration = new NettyConfiguration();
+        nettyConfiguration.configure(properties);
+        LogReplicationConfiguration logReplicationConfiguration = new LogReplicationConfiguration();
+        logReplicationConfiguration.configure(properties);
+        LogStorageConfiguration logStorageConfiguration = new LogStorageConfiguration();
+        logStorageConfiguration.configure(properties);
+        Log4jConfiguration log4jConfiguration = new Log4jConfiguration();
+        log4jConfiguration.configure(properties);
     }
 
-    private void loadProperties(Properties properties) {
-        nodeId = properties.getProperty("nodeId", UUID.randomUUID().toString());
-        String modeProperty = properties.getProperty("mode", "singleton");
-        if (RunMode.SINGLE.toString().equals(modeProperty)) {
-            mode = RunMode.SINGLE;
+    private void afterConfigure(Properties properties){
+        nodeId = properties.getProperty("nodeId");
+        String modeProperty = properties.getProperty("mode");
+        if (RunMode.SINGLETON.toString().equals(modeProperty)) {
+            mode = RunMode.SINGLETON;
         } else {
             mode = RunMode.CLUSTER;
             clusterInfo = properties.getProperty("clusterInfo");
         }
-        host = properties.getProperty("host", "127.0.0.1");
-        port = Integer.parseInt(properties.getProperty("port", "8190"));
-        connectorHost = properties.getProperty("connectorHost", "127.0.0.1");
-        connectorPort = Integer.parseInt(properties.getProperty("connectorPort", "1013"));
-        bossThreads = Integer.parseInt(properties.getProperty("bossThreads", "1"));
-        workerThreads = Integer.parseInt(properties.getProperty("workerThreads", "1"));
-        minElectionTimeout = Integer.parseInt(properties.getProperty("minElectionTimeout", "3000"));
-        maxElectionTimeout = Integer.parseInt(properties.getProperty("maxElectionTimeout", "4000"));
-        logReplicationDelay = Long.parseLong(properties.getProperty("logReplicationDelay", "1000"));
-        logReplicationInterval = Long.parseLong(properties.getProperty("logReplicationInterval", "1000"));
-        retryTimeout = Long.parseLong(properties.getProperty("retryTimeout", "900"));
-        base = new File(properties.getProperty("basePath", System.getProperty("user.home")));
-        snapshotGenerateThreshold = Integer
-            .parseInt(properties.getProperty("snapshotGenerateThreshold", String.valueOf(1024 * 1024 * 10)));
-        maxTransferLogs = Integer.parseInt(properties.getProperty("maxTransferLogs", "10000"));
-        maxTransferSize = Integer.parseInt(properties.getProperty("maxTransferSize", "10240"));
-        linkedBuffPollSize = Integer.parseInt(properties.getProperty("linkedBuffPollSize", "16"));
-        readIdleTimeout = Integer.parseInt(properties.getProperty("readIdleTimeout", "10"));
-        writeIdleTimeout = Integer.parseInt(properties.getProperty("writeIdleTimeout", "10"));
-        allIdleTimeout = Integer.parseInt(properties.getProperty("allIdleTimeout", "10"));
-        useDirectByteBuffer = Boolean.parseBoolean(properties.getProperty("useDirectByteBuffer", "true"));
-        byteBufferPoolSize = Integer.parseInt(properties.getProperty("byteBufferPoolSize", "10"));
-        byteBufferSizeLimit = Integer.parseInt(properties.getProperty("byteBufferSizeLimit", String.valueOf(1024 * 1024 * 10)));
-        synLogFlush = Boolean.parseBoolean(properties.getProperty("synLogFlush", "false"));
-        blockCacheSize = Integer.parseInt(properties.getProperty("blockCacheSize", "50"));
-        blockSize = Integer.parseInt(properties.getProperty("blockCacheSize", String.valueOf(1024 * 1024)));
-        blockFlushInterval = Long.parseLong(properties.getProperty("blockFlushInterval", "1000"));
-        logIndexCacheSize = Integer.parseInt(properties.getProperty("logIndexCacheSize", "100"));
-        lazyFlushInterval = Long.parseLong(properties.getProperty("lazyFlushInterval", "100"));
-        lazyFlushThreshold = Double.parseDouble(properties.getProperty("lazyFlushThreshold", String.valueOf((double) 1 / 1000)));
+        host = properties.getProperty("host");
+        port = Integer.parseInt(properties.getProperty("port"));
+        connectorHost = properties.getProperty("connectorHost");
+        connectorPort = Integer.parseInt(properties.getProperty("connectorPort"));
+        bossThreads = Integer.parseInt(properties.getProperty("bossThreads"));
+        workerThreads = Integer.parseInt(properties.getProperty("workerThreads"));
+        minElectionTimeout = Integer.parseInt(properties.getProperty("minElectionTimeout"));
+        maxElectionTimeout = Integer.parseInt(properties.getProperty("maxElectionTimeout"));
+        logReplicationDelay = Long.parseLong(properties.getProperty("logReplicationDelay"));
+        logReplicationInterval = Long.parseLong(properties.getProperty("logReplicationInterval"));
+        retryTimeout = Long.parseLong(properties.getProperty("retryTimeout"));
+        base = new File(properties.getProperty("basePath"));
+        snapshotGenerateThreshold = Integer.parseInt(properties.getProperty("snapshotGenerateThreshold"));
+        maxTransferLogs = Integer.parseInt(properties.getProperty("maxTransferLogs"));
+        maxTransferSize = Integer.parseInt(properties.getProperty("maxTransferSize"));
+        linkedBuffPollSize = Integer.parseInt(properties.getProperty("linkedBuffPollSize"));
+        readIdleTimeout = Integer.parseInt(properties.getProperty("readIdleTimeout"));
+        writeIdleTimeout = Integer.parseInt(properties.getProperty("writeIdleTimeout"));
+        allIdleTimeout = Integer.parseInt(properties.getProperty("allIdleTimeout"));
+        useDirectByteBuffer = Boolean.parseBoolean(properties.getProperty("useDirectByteBuffer"));
+        byteBufferPoolSize = Integer.parseInt(properties.getProperty("byteBufferPoolSize"));
+        byteBufferSizeLimit = Integer.parseInt(properties.getProperty("byteBufferSizeLimit"));
+        synLogFlush = Boolean.parseBoolean(properties.getProperty("synLogFlush"));
+        blockCacheSize = Integer.parseInt(properties.getProperty("blockCacheSize"));
+        blockSize = Integer.parseInt(properties.getProperty("blockSize"));
+        blockFlushInterval = Long.parseLong(properties.getProperty("blockFlushInterval"));
+        logIndexCacheSize = Integer.parseInt(properties.getProperty("logIndexCacheSize"));
+        lazyFlushInterval = Long.parseLong(properties.getProperty("lazyFlushInterval"));
+        lazyFlushThreshold = Double.parseDouble(properties.getProperty("lazyFlushThreshold"));
     }
 
 }
