@@ -1,5 +1,5 @@
 /.idea/
-/raft.iml
+/RaftKVStore.iml
 /target/
 /server/target/
 /server/src/main/resources/config/
