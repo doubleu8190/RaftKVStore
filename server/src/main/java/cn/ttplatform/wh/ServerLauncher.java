@@ -53,15 +53,15 @@ public class ServerLauncher {
     public ServerProperties initConfig(CommandLine commandLine) {
         ServerProperties properties;
         if (commandLine.hasOption(LaunchOption.CONFIG_OPTION)) {
-            String value = commandLine.getOptionValue('c');
+            String value = commandLine.getOptionValue(LaunchOption.CONFIG_OPTION);
             properties = new ServerProperties(value);
         } else {
             properties = new ServerProperties();
         }
         if (commandLine.hasOption(MODE_OPTION)) {
             String mode = commandLine.getOptionValue(MODE_OPTION);
-            if (RunMode.SINGLE.toString().equals(mode.toUpperCase())) {
-                properties.setMode(RunMode.SINGLE);
+            if (RunMode.SINGLETON.toString().equals(mode.toUpperCase())) {
+                properties.setMode(RunMode.SINGLETON);
                 properties.setClusterInfo(null);
             } else {
                 properties.setMode(RunMode.CLUSTER);
