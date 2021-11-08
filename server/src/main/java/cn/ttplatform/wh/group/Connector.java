@@ -13,11 +13,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import java.net.InetSocketAddress;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-
-import java.net.InetSocketAddress;
 
 /**
  * @author Wang Hao
@@ -40,8 +39,6 @@ public class Connector {
         this.boss = context.getBoss();
         this.worker = context.getWorker();
         this.bootstrap = newBootstrap(context.getWorker());
-        ServerProperties properties = context.getProperties();
-        listen(properties.getConnectorHost(), properties.getConnectorPort());
     }
 
     public Bootstrap newBootstrap(EventLoopGroup worker) {
@@ -68,42 +65,51 @@ public class Connector {
         }
     }
 
-    public Channel connect(InetSocketAddress socketAddress,String remoteId) {
-        Channel channel = channelPool.getChannel(remoteId);
-        if (channel != null && channel.isOpen()) {
-            return channel;
+    public Channel getConnection(InetSocketAddress socketAddress, String remoteId, boolean channelCached) {
+        Channel channel;
+        if (channelCached) {
+            channel = channelPool.getChannel(remoteId);
+            if (channel != null) {
+                if (!channel.isOpen()) {
+                    // channel is closed, must be removed
+                    channelPool.removeChannel(remoteId);
+                }
+                return channel;
+            }
         }
-        try {
-            channel = bootstrap.connect(socketAddress).sync().channel();
+        channel = connect(socketAddress);
+        if (channelCached) {
             channelPool.cacheChannel(remoteId, channel);
             channel.closeFuture().addListener(future -> {
                 if (future.isSuccess()) {
                     channelPool.removeChannel(remoteId);
                 }
             });
-            return channel;
+        }
+        return channel;
+    }
+
+    public Channel connect(InetSocketAddress socketAddress) {
+        try {
+            return bootstrap.connect(socketAddress).sync().channel();
         } catch (Exception e) {
-            log.error("failed to connect to [{},{}].", remoteId, socketAddress);
+            log.error("failed to connect to {}.", socketAddress);
             Thread.currentThread().interrupt();
             return null;
         }
     }
 
-    public ChannelFuture send(Message message, EndpointMetaData metaData) {
-        Channel channel = connect(metaData.getConnectorAddress(),metaData.getNodeId());
+    public ChannelFuture send(Message message, EndpointMetaData metaData, boolean cmd) {
+        Channel channel;
+        if (cmd) {
+            channel = getConnection(metaData.getCommandAddress(), null, false);
+        } else {
+            channel = getConnection(metaData.getConnectorAddress(), metaData.getNodeId(), true);
+        }
         if (channel == null) {
             return null;
         }
         log.debug("encode a message[{}] to {}", message, metaData.getNodeId());
-        return channel.writeAndFlush(message);
-    }
-
-    public ChannelFuture send(Message message, String nodeId) {
-        Channel channel = channelPool.getChannel(nodeId);
-        if (channel == null) {
-            return null;
-        }
-        log.debug("encode a message[{}] to {}", message, nodeId);
         return channel.writeAndFlush(message);
     }
 }

@@ -294,20 +294,17 @@ public class GlobalContext {
         cluster.getAllEndpointExceptSelf().forEach(endpoint -> sendMessage(message, endpoint));
     }
 
+    public void sendMessage(Message message, String nodeId) {
+        sendMessage(message, cluster.find(nodeId));
+    }
+
     public void sendMessage(Message message, Endpoint endpoint) {
         message.setSourceId(properties.getNodeId());
-        connector.send(message, endpoint.getMetaData());
+        connector.send(message, endpoint.getMetaData(), false);
     }
 
     public void sendCommand(Message message, Endpoint endpoint) {
-    }
-
-    public void sendMessage(Message message, String nodeId) {
-        if (message == null) {
-            return;
-        }
-        message.setSourceId(properties.getNodeId());
-        connector.send(message, nodeId);
+        connector.send(message, endpoint.getMetaData(), true);
     }
 
     public void advanceLastApplied(int newCommitIndex) {
@@ -438,8 +435,13 @@ public class GlobalContext {
         logger.info("logSynCompleteState is {}", logSynCompleteState);
         cluster.setPhase(Phase.SYNCING);
         logger.info("enter SYNCING phase");
-        SyncingMessage syncingMessage = new SyncingMessage();
-        cluster.getAllEndpointExceptSelf().forEach(endpoint -> sendMessage(syncingMessage, endpoint));
+
+        cluster.getAllEndpointExceptSelf().forEach(endpoint -> {
+            if (cluster.inNewConfig(endpoint.getNodeId())) {
+                SyncingMessage syncingMessage = new SyncingMessage(node.getTerm(), endpoint.getMetaData().getConnectorPort());
+                sendCommand(syncingMessage, endpoint);
+            }
+        });
     }
 
     /**

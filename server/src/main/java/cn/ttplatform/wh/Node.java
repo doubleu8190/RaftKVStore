@@ -52,7 +52,7 @@ public class Node {
 
     public synchronized void start() {
         if (!start) {
-            if (mode == RunMode.SINGLE) {
+            if (mode == RunMode.SINGLETON) {
                 startInSingleMode();
             } else {
                 startInClusterMode();
@@ -80,7 +80,9 @@ public class Node {
     }
 
     private void startInClusterMode() {
-        context.setConnector(new Connector(context));
+        Connector connector = new Connector(context);
+        connector.listen(properties.getConnectorHost(), properties.getConnectorPort());
+        context.setConnector(connector);
         context.setScheduler(new SingleThreadScheduler(properties));
         context.setCluster(new Cluster(context));
         this.role = Follower.builder()

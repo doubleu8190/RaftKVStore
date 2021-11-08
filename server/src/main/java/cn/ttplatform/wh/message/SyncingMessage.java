@@ -21,6 +21,7 @@ import lombok.experimental.SuperBuilder;
 public class SyncingMessage extends AbstractMessage {
 
     private int term;
+    private int connectorPort;
 
     @Override
     public int getType() {
