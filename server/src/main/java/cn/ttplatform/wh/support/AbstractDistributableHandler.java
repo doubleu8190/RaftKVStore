@@ -19,7 +19,7 @@ public abstract class AbstractDistributableHandler implements DistributableHandl
     @Override
     public void handle(Distributable distributable) {
         RunMode mode = context.getNode().getMode();
-        if (mode == RunMode.SINGLE) {
+        if (mode == RunMode.SINGLETON) {
             context.getExecutor().execute(() -> doHandleInSingleMode(distributable));
         } else {
             context.getExecutor().execute(() -> doHandleInClusterMode(distributable));
