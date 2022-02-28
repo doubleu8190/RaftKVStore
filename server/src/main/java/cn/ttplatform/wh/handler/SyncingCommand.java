@@ -1,6 +1,8 @@
-package cn.ttplatform.wh.message;
+package cn.ttplatform.wh.handler;
 
+import cn.ttplatform.wh.cmd.AbstractCommand;
 import cn.ttplatform.wh.constant.DistributableType;
+import cn.ttplatform.wh.group.EndpointMetaData;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,10 +20,11 @@ import lombok.experimental.SuperBuilder;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class SyncingMessage extends AbstractMessage {
+public class SyncingCommand extends AbstractCommand {
 
+    private EndpointMetaData leaderMetaData;
     private int term;
-    private int connectorPort;
+    private EndpointMetaData followerMetaData;
 
     @Override
     public int getType() {

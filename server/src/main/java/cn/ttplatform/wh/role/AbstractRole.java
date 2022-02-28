@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Wang Hao
@@ -16,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@Slf4j
 public abstract class AbstractRole implements Role {
 
     protected int term;
@@ -24,6 +26,7 @@ public abstract class AbstractRole implements Role {
     @Override
     public void cancelTask() {
         if (scheduledFuture != null) {
+            log.info("cancel task...");
             scheduledFuture.cancel(false);
         }
     }

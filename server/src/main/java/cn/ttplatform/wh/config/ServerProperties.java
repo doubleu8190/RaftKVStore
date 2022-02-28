@@ -48,6 +48,10 @@ public class ServerProperties {
      */
     private int workerThreads;
 
+    private int backlog;
+
+    private boolean tcpNoDelay;
+
     /**
      * Minimum election timeout
      */
@@ -149,7 +153,7 @@ public class ServerProperties {
         afterConfigure(properties);
     }
 
-    private void configure(Properties properties){
+    private void configure(Properties properties) {
         ClusterConfiguration clusterConfiguration = new ClusterConfiguration();
         clusterConfiguration.configure(properties);
         NettyConfiguration nettyConfiguration = new NettyConfiguration();
@@ -162,7 +166,7 @@ public class ServerProperties {
         log4jConfiguration.configure(properties);
     }
 
-    private void afterConfigure(Properties properties){
+    private void afterConfigure(Properties properties) {
         nodeId = properties.getProperty("nodeId");
         String modeProperty = properties.getProperty("mode");
         if (RunMode.SINGLETON.toString().equals(modeProperty)) {
@@ -177,6 +181,8 @@ public class ServerProperties {
         connectorPort = Integer.parseInt(properties.getProperty("connectorPort"));
         bossThreads = Integer.parseInt(properties.getProperty("bossThreads"));
         workerThreads = Integer.parseInt(properties.getProperty("workerThreads"));
+        backlog = Integer.parseInt(properties.getProperty("backlog"));
+        tcpNoDelay = Boolean.parseBoolean(properties.getProperty("tcpNoDelay"));
         minElectionTimeout = Integer.parseInt(properties.getProperty("minElectionTimeout"));
         maxElectionTimeout = Integer.parseInt(properties.getProperty("maxElectionTimeout"));
         logReplicationDelay = Long.parseLong(properties.getProperty("logReplicationDelay"));

@@ -28,7 +28,9 @@ public abstract class AbstractDuplexChannelHandler extends ChannelDuplexHandler 
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        log.error(cause.toString());
+        if (cause!=null){
+            log.error(cause.toString());
+        }
     }
 
     @Override

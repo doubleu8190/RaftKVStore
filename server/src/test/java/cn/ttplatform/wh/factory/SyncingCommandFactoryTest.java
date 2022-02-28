@@ -2,7 +2,7 @@ package cn.ttplatform.wh.factory;
 
 import cn.ttplatform.wh.message.serializer.SyncingMessageSerializer;
 import cn.ttplatform.wh.constant.DistributableType;
-import cn.ttplatform.wh.message.SyncingMessage;
+import cn.ttplatform.wh.handler.SyncingCommand;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import io.netty.buffer.ByteBuf;
@@ -20,7 +20,7 @@ import org.junit.Test;
  * @date 2021/5/11 23:05
  */
 @Slf4j
-public class SyncingMessageFactoryTest {
+public class SyncingCommandFactoryTest {
 
     SyncingMessageSerializer factory;
 
@@ -37,7 +37,7 @@ public class SyncingMessageFactoryTest {
 
     @Test
     public void create() {
-        SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
+        SyncingCommand message = SyncingCommand.builder().term(0).id("A").build();
         byte[] bytes = factory.serialize(message);
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
@@ -46,7 +46,7 @@ public class SyncingMessageFactoryTest {
 
     @Test
     public void testCreate() {
-        SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
+        SyncingCommand message = SyncingCommand.builder().term(0).id("A").build();
         byte[] bytes = factory.serialize(message);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
@@ -61,7 +61,7 @@ public class SyncingMessageFactoryTest {
 
     @Test
     public void getBytes() {
-        SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
+        SyncingCommand message = SyncingCommand.builder().term(0).id("A").build();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -69,7 +69,7 @@ public class SyncingMessageFactoryTest {
 
     @Test
     public void testGetBytes() {
-        SyncingMessage message = SyncingMessage.builder().term(0).sourceId("A").build();
+        SyncingCommand message = SyncingCommand.builder().term(0).id("A").build();
         UnpooledByteBufAllocator allocator = new UnpooledByteBufAllocator(true);
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();

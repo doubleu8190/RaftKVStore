@@ -9,10 +9,10 @@ import java.util.UUID;
  */
 public class ClusterConfiguration {
 
-    public void configure(Properties properties){
+    public void configure(Properties properties) {
         properties.putIfAbsent("nodeId", UUID.randomUUID().toString());
-        properties.putIfAbsent("mode",RunMode.SINGLETON.toString());
-        properties.putIfAbsent("minElectionTimeout","3000");
-        properties.putIfAbsent("maxElectionTimeout","4000");
+        properties.putIfAbsent("mode", RunMode.SINGLETON.toString());
+        properties.putIfAbsent("minElectionTimeout", "3000");
+        properties.putIfAbsent("maxElectionTimeout", "4000");
     }
 }

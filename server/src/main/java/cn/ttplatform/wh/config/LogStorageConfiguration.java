@@ -15,9 +15,10 @@ public class LogStorageConfiguration {
         properties.putIfAbsent("byteBufferPoolSize", "10");
         properties.putIfAbsent("byteBufferSizeLimit", String.valueOf(1024 * 1024 * 10));
         properties.putIfAbsent("synLogFlush", "false");
+        properties.putIfAbsent("blockSize", String.valueOf(1024 * 1024 * 4));
         properties.putIfAbsent("blockFlushInterval", "1000");
         properties.putIfAbsent("blockCacheSize", "50");
         properties.putIfAbsent("logIndexCacheSize", "100");
-        properties.putIfAbsent("basePath",System.getProperty("user.home"));
+        properties.putIfAbsent("basePath", System.getProperty("user.home"));
     }
 }

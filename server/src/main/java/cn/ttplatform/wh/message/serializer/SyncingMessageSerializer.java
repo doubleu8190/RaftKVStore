@@ -1,6 +1,6 @@
 package cn.ttplatform.wh.message.serializer;
 
-import cn.ttplatform.wh.message.SyncingMessage;
+import cn.ttplatform.wh.handler.SyncingCommand;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.constant.ErrorMessage;
 import cn.ttplatform.wh.exception.MessageParseException;
@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
  */
 public class SyncingMessageSerializer extends AbstractDistributableSerializer {
 
-    private final Schema<SyncingMessage> schema = RuntimeSchema.getSchema(SyncingMessage.class);
+    private final Schema<SyncingCommand> schema = RuntimeSchema.getSchema(SyncingCommand.class);
 
     public SyncingMessageSerializer(Pool<LinkedBuffer> pool) {
         super(pool);
@@ -30,7 +30,7 @@ public class SyncingMessageSerializer extends AbstractDistributableSerializer {
 
     @Override
     public byte[] serialize(Distributable distributable, LinkedBuffer buffer) {
-        return ProtostuffIOUtil.toByteArray((SyncingMessage) distributable, schema, buffer);
+        return ProtostuffIOUtil.toByteArray((SyncingCommand) distributable, schema, buffer);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class SyncingMessageSerializer extends AbstractDistributableSerializer {
 
     @Override
     public Distributable create(ByteBuffer byteBuffer) {
-        SyncingMessage message = new SyncingMessage();
+        SyncingCommand message = new SyncingCommand();
         try {
             schema.mergeFrom(new ByteBufferInput(byteBuffer, true), message);
         } catch (IOException e) {
@@ -51,7 +51,7 @@ public class SyncingMessageSerializer extends AbstractDistributableSerializer {
 
     @Override
     public Distributable deserialize(byte[] content, int length) {
-        SyncingMessage message = new SyncingMessage();
+        SyncingCommand message = new SyncingCommand();
         ProtostuffIOUtil.mergeFrom(content, 0, length, message, schema);
         return message;
     }
@@ -59,6 +59,6 @@ public class SyncingMessageSerializer extends AbstractDistributableSerializer {
     @Override
     public void serialize(Distributable distributable, LinkedBuffer buffer, OutputStream outputStream)
         throws IOException {
-        ProtostuffIOUtil.writeTo(outputStream, (SyncingMessage) distributable, schema, buffer);
+        ProtostuffIOUtil.writeTo(outputStream, (SyncingCommand) distributable, schema, buffer);
     }
 }

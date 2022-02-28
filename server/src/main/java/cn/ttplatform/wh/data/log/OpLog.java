@@ -26,7 +26,7 @@ public class OpLog extends AbstractLog {
 
     @Override
     public String toString() {
-        return "OpLog{metadata=" + metadata + '}';
+        return "OpLog{metadata=" + metadata + ", commandSize=" + (command == null ? 0 : command.length) + '}';
     }
 
 }

@@ -44,7 +44,7 @@ public class RequestVoteResultMessageHandler extends AbstractDistributableHandle
             Candidate candidate = (Candidate) node.getRole();
             if (checkVoteCounts(message, candidate)) {
                 node.changeToLeader(currentTerm);
-                context.doLogReplication();
+                context.logReplicationTask(false);
             } else {
                 log.debug("need more votes");
                 node.changeToCandidate(term, candidate.getOldConfigVoteCounts(), candidate.getNewConfigVoteCounts());
