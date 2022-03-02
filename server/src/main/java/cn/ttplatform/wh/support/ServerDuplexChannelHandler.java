@@ -10,6 +10,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -23,17 +24,27 @@ import java.util.concurrent.ConcurrentHashMap;
 @Sharable
 public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
 
-    private final Map<Channel, LazyFlushStrategy> channelFlushStrategyMap = new ConcurrentHashMap<>();
+    private final Map<Channel, LazyFlushStrategy> channelFlushStrategyMap;
 
     public ServerDuplexChannelHandler(GlobalContext context) {
         super(context);
+        ServerProperties properties = context.getProperties();
+        if (properties.isTcpNoDelay()) {
+            channelFlushStrategyMap = null;
+        } else {
+            log.debug("enable lazy flush strategy.");
+            channelFlushStrategyMap = new ConcurrentHashMap<>((int) (properties.getBlockSize() / 0.75f) + 1);
+        }
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         Channel channel = ctx.channel();
+        log.debug("active a channel[{}]", channel);
         ServerProperties properties = context.getProperties();
-        channelFlushStrategyMap.put(channel, new LazyFlushStrategy(channel, properties.getLazyFlushInterval(), properties.getLazyFlushThreshold()));
+        if (channelFlushStrategyMap != null) {
+            channelFlushStrategyMap.put(channel, new LazyFlushStrategy(channel, properties.getLazyFlushInterval(), properties.getLazyFlushThreshold()));
+        }
     }
 
     @Override
@@ -48,7 +59,7 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
             channelPool.cacheChannel(commandId, channel);
             distributor.distribute(command);
         } else {
-            log.error("unknown message type, msg is {}", msg);
+            log.error("unknown message type, msg is {} from {}", msg, channel);
             channel.close();
         }
     }
@@ -71,14 +82,19 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
 
     @Override
     public void flush(ChannelHandlerContext ctx) throws Exception {
-        if (channelFlushStrategyMap.get(ctx.channel()).flush()) {
-            super.flush(ctx);
+        if (channelFlushStrategyMap != null) {
+            LazyFlushStrategy lazyFlushStrategy = channelFlushStrategyMap.get(ctx.channel());
+            if (lazyFlushStrategy != null && lazyFlushStrategy.flush()) {
+                super.flush(ctx);
+            }
         }
     }
 
     @Override
     public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
-        channelFlushStrategyMap.remove(ctx.channel());
+        if (channelFlushStrategyMap != null) {
+            channelFlushStrategyMap.remove(ctx.channel());
+        }
         super.close(ctx, promise);
     }
 

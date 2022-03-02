@@ -1,6 +1,7 @@
 package cn.ttplatform.wh.log4j;
 
 import java.io.IOException;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.log4j.DailyRollingFileAppender;
 import org.apache.log4j.Layout;
@@ -24,8 +25,10 @@ public class DailyRollingFileAppenderWrapper extends DailyRollingFileAppender {
 
     private void addShutdownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            qw.flush();
-            log.debug("flush {} buffer.", qw.toString());
+            if (qw != null) {
+                qw.flush();
+                log.debug("flush {} buffer.", qw.toString());
+            }
         }, "log4j-thread"));
     }
 }

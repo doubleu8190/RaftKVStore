@@ -11,13 +11,15 @@ import io.netty.channel.ChannelPipeline;
 @Sharable
 public class ServerChannelInitializer extends AbstractChannelInitializer {
 
+    private final ServerDuplexChannelHandler serverDuplexChannelHandler;
 
     public ServerChannelInitializer(GlobalContext context) {
         super(context);
+        this.serverDuplexChannelHandler = new ServerDuplexChannelHandler(context);
     }
 
     @Override
     protected void custom(ChannelPipeline pipeline) {
-        pipeline.addLast(new ServerDuplexChannelHandler(context));
+        pipeline.addLast(serverDuplexChannelHandler);
     }
 }

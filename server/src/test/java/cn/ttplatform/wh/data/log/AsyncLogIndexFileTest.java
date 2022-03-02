@@ -5,6 +5,7 @@ import cn.ttplatform.wh.data.index.AsyncLogIndexFile;
 import cn.ttplatform.wh.data.index.LogIndex;
 import cn.ttplatform.wh.data.index.LogIndexFileMetadataRegion;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
+import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
@@ -28,11 +29,13 @@ public class AsyncLogIndexFileTest {
 
     @Before
     public void setUp() throws Exception {
-        bufferPool = new DirectByteBufferPool(10, 1024 * 1024, 10 * 1024 * 1024);
+        ServerProperties properties = new ServerProperties();
+        bufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
+                properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("AsyncLogIndexFileTest-", ".txt");
         File metaFile = File.createTempFile("AsyncLogIndexMetaFileTest-", ".txt");
         LogIndexFileMetadataRegion logIndexFileMetadataRegion = new LogIndexFileMetadataRegion(metaFile);
-        asyncLogIndexFile = new AsyncLogIndexFile(file, new ServerProperties(), bufferPool, 0, logIndexFileMetadataRegion);
+        asyncLogIndexFile = new AsyncLogIndexFile(file, properties, bufferPool, 0, logIndexFileMetadataRegion);
     }
 
     @After

@@ -279,7 +279,7 @@ public class DataManager {
         return term == logEntry.getTerm();
     }
 
-    public Message createAppendLogEntriesMessage( int term, Endpoint endpoint, int size) {
+    public Message createAppendLogEntriesMessage(int term, Endpoint endpoint, int size) {
         int lastIncludeIndex = snapshot.getLastIncludeIndex();
         int lastIncludeTerm = snapshot.getLastIncludeTerm();
         int endpointNextIndex = endpoint.getNextIndex();
@@ -373,7 +373,7 @@ public class DataManager {
         int lastIncludeIndex = message.getLastIncludeIndex();
         // if the lastIncludeIndex < oldGeneration.getLastIncludeIndex() means this message is an expired messages.
         // need to prevent repeated consumption of expired messages
-        if (lastIncludeIndex <= snapshot.getLastIncludeIndex()) {
+        if (lastIncludeIndex <= snapshot.getLastIncludeIndex() && lastIncludeIndex != 0) {
             throw new UnsupportedOperationException("the InstallSnapshotMessage is expired");
         }
         int lastIncludeTerm = message.getLastIncludeTerm();

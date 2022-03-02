@@ -1,11 +1,13 @@
 package cn.ttplatform.wh;
 
 import cn.ttplatform.wh.config.ServerProperties;
+import cn.ttplatform.wh.support.ChannelPool;
 import cn.ttplatform.wh.support.ServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -18,19 +20,22 @@ public class Server {
     private final GlobalContext context;
     private final NioEventLoopGroup boss;
     private final NioEventLoopGroup worker;
+    private final ServerChannelInitializer serverChannelInitializer;
 
     public Server(GlobalContext context) {
         this.context = context;
         this.boss = context.getBoss();
         this.worker = context.getWorker();
+        this.serverChannelInitializer = new ServerChannelInitializer(context);
     }
 
     public void listen() {
-        ServerBootstrap serverBootstrap = new ServerBootstrap().group(boss, worker)
-                .channel(NioServerSocketChannel.class)
-                .childOption(ChannelOption.TCP_NODELAY, false)
-                .childHandler(new ServerChannelInitializer(context));
         ServerProperties properties = context.getProperties();
+        ServerBootstrap serverBootstrap = new ServerBootstrap().group(boss, worker)
+            .channel(NioServerSocketChannel.class)
+            .option(ChannelOption.SO_BACKLOG, properties.getBacklog())
+            .childOption(ChannelOption.TCP_NODELAY, properties.isTcpNoDelay())
+            .childHandler(serverChannelInitializer);
         String host = properties.getHost();
         int port = properties.getPort();
         try {

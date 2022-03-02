@@ -1,6 +1,8 @@
 package cn.ttplatform.wh.data.log;
 
+import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
+import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
@@ -30,7 +32,9 @@ public class SyncLogFileTest {
 
     @Before
     public void setUp() throws IOException {
-        Pool<ByteBuffer> bufferPool = new DirectByteBufferPool(10, 1024 * 1024, 10 * 1024 * 1024);
+        ServerProperties properties = new ServerProperties();
+        Pool<ByteBuffer> bufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
+                properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("SyncLogFile-", ".txt");
         File metaFile = File.createTempFile("SyncLogMetaFile-", ".txt");
         LogFileMetadataRegion logFileMetadataRegion = new LogFileMetadataRegion(metaFile);

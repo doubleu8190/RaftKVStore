@@ -5,6 +5,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -14,11 +15,13 @@ import java.util.concurrent.TimeUnit;
 public class SingleThreadScheduler implements Scheduler {
 
     private final ServerProperties properties;
-    private final ScheduledExecutorService executor;
+    private final ScheduledExecutorService scheduler;
+    private final ThreadPoolExecutor executor;
 
-    public SingleThreadScheduler(ServerProperties properties) {
+    public SingleThreadScheduler(ServerProperties properties, ThreadPoolExecutor executor) {
         this.properties = properties;
-        this.executor = new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "scheduler"));
+        this.scheduler = new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "scheduler"));
+        this.executor = executor;
     }
 
     @Override
@@ -26,19 +29,23 @@ public class SingleThreadScheduler implements Scheduler {
         int maxElectionTimeout = properties.getMaxElectionTimeout();
         int minElectionTimeout = properties.getMinElectionTimeout();
         int timeout = ThreadLocalRandom.current().nextInt(maxElectionTimeout - minElectionTimeout) + minElectionTimeout;
-        return executor.schedule(task, timeout, TimeUnit.MILLISECONDS);
+        return scheduler.schedule(createTask(task), timeout, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public ScheduledFuture<?> scheduleLogReplicationTask(Runnable task) {
         long delay = properties.getLogReplicationDelay();
         long interval = properties.getLogReplicationInterval();
-        return executor.scheduleWithFixedDelay(task, delay, interval, TimeUnit.MILLISECONDS);
+        return scheduler.scheduleWithFixedDelay(createTask(task), delay, interval, TimeUnit.MILLISECONDS);
+    }
+
+    public Runnable createTask(Runnable task) {
+        return () -> executor.execute(task);
     }
 
     @Override
     public void close() {
-        executor.shutdownNow();
+        scheduler.shutdownNow();
     }
 
 }

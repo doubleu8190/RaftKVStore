@@ -10,11 +10,11 @@ import cn.ttplatform.wh.cmd.SetCommand;
 import cn.ttplatform.wh.cmd.SetResultCommand;
 import cn.ttplatform.wh.cmd.factory.ClusterChangeCommandSerializer;
 import cn.ttplatform.wh.cmd.factory.ClusterChangeResultCommandSerializer;
-import cn.ttplatform.wh.cmd.factory.KVEntrySerializer;
 import cn.ttplatform.wh.cmd.factory.GetClusterInfoCommandSerializer;
 import cn.ttplatform.wh.cmd.factory.GetClusterInfoResultCommandSerializer;
 import cn.ttplatform.wh.cmd.factory.GetCommandSerializer;
 import cn.ttplatform.wh.cmd.factory.GetResultCommandSerializer;
+import cn.ttplatform.wh.cmd.factory.KVEntrySerializer;
 import cn.ttplatform.wh.cmd.factory.RedirectCommandSerializer;
 import cn.ttplatform.wh.cmd.factory.RequestFailedCommandSerializer;
 import cn.ttplatform.wh.cmd.factory.SetCommandSerializer;
@@ -39,7 +39,16 @@ import cn.ttplatform.wh.handler.GetCommandHandler;
 import cn.ttplatform.wh.handler.SetCommandHandler;
 import cn.ttplatform.wh.message.PreVoteMessage;
 import cn.ttplatform.wh.message.RequestVoteMessage;
-import cn.ttplatform.wh.message.SyncingMessage;
+import cn.ttplatform.wh.handler.SyncingCommand;
+import cn.ttplatform.wh.message.handler.AppendLogEntriesMessageHandler;
+import cn.ttplatform.wh.message.handler.AppendLogEntriesResultMessageHandler;
+import cn.ttplatform.wh.message.handler.InstallSnapshotMessageHandler;
+import cn.ttplatform.wh.message.handler.InstallSnapshotResultMessageHandler;
+import cn.ttplatform.wh.message.handler.PreVoteMessageHandler;
+import cn.ttplatform.wh.message.handler.PreVoteResultMessageHandler;
+import cn.ttplatform.wh.message.handler.RequestVoteMessageHandler;
+import cn.ttplatform.wh.message.handler.RequestVoteResultMessageHandler;
+import cn.ttplatform.wh.handler.SyncingCommandHandler;
 import cn.ttplatform.wh.message.serializer.AppendLogEntriesMessageSerializer;
 import cn.ttplatform.wh.message.serializer.AppendLogEntriesResultMessageSerializer;
 import cn.ttplatform.wh.message.serializer.InstallSnapshotMessageSerializer;
@@ -49,15 +58,6 @@ import cn.ttplatform.wh.message.serializer.PreVoteResultMessageSerializer;
 import cn.ttplatform.wh.message.serializer.RequestVoteMessageSerializer;
 import cn.ttplatform.wh.message.serializer.RequestVoteResultMessageSerializer;
 import cn.ttplatform.wh.message.serializer.SyncingMessageSerializer;
-import cn.ttplatform.wh.message.handler.AppendLogEntriesMessageHandler;
-import cn.ttplatform.wh.message.handler.AppendLogEntriesResultMessageHandler;
-import cn.ttplatform.wh.message.handler.InstallSnapshotMessageHandler;
-import cn.ttplatform.wh.message.handler.InstallSnapshotResultMessageHandler;
-import cn.ttplatform.wh.message.handler.PreVoteMessageHandler;
-import cn.ttplatform.wh.message.handler.PreVoteResultMessageHandler;
-import cn.ttplatform.wh.message.handler.RequestVoteMessageHandler;
-import cn.ttplatform.wh.message.handler.RequestVoteResultMessageHandler;
-import cn.ttplatform.wh.message.handler.SyncingMessageHandler;
 import cn.ttplatform.wh.scheduler.Scheduler;
 import cn.ttplatform.wh.scheduler.SingleThreadScheduler;
 import cn.ttplatform.wh.support.ChannelPool;
@@ -72,6 +72,8 @@ import cn.ttplatform.wh.support.Pool;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.protostuff.LinkedBuffer;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,6 +82,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
@@ -124,11 +127,12 @@ public class GlobalContext {
     private Cluster cluster;
     private Connector connector;
     private ClusterChangeCommand clusterChangeCommand;
+    private boolean clusterEnabled;
 
     public GlobalContext(Node node) {
         this.node = node;
         this.properties = node.getProperties();
-        this.linkedBufferPool = new FixedSizeLinkedBufferPool(properties.getLinkedBuffPollSize());
+        this.linkedBufferPool = new FixedSizeLinkedBufferPool(properties.getLinkedBuffPoolSize());
         if (properties.isUseDirectByteBuffer()) {
             logger.debug("use DirectBufferAllocator");
             this.byteBufferPool = new DirectByteBufferPool(properties.getByteBufferPoolSize(),
@@ -163,6 +167,22 @@ public class GlobalContext {
         this.channelPool = new ChannelPool();
     }
 
+    public void enableClusterComponent() {
+        if (!clusterEnabled) {
+            clusterEnabled = true;
+            logger.info("enable cluster component...");
+            this.connector = new Connector(this);
+            this.connector.listen(new InetSocketAddress(properties.getConnectorHost(), properties.getConnectorPort()));
+            this.scheduler = new SingleThreadScheduler(properties, executor);
+            this.cluster = new Cluster(this);
+        }
+    }
+
+    public void enterClusterMode() {
+        node.setMode(RunMode.CLUSTER);
+        enableClusterComponent();
+    }
+
     private CommonDistributor buildDistributor() {
         CommonDistributor commonDistributor = new CommonDistributor();
         commonDistributor.register(new GetClusterInfoCommandHandler(this));
@@ -177,7 +197,7 @@ public class GlobalContext {
         commonDistributor.register(new PreVoteResultMessageHandler(this));
         commonDistributor.register(new InstallSnapshotMessageHandler(this));
         commonDistributor.register(new InstallSnapshotResultMessageHandler(this));
-        commonDistributor.register(new SyncingMessageHandler(this));
+        commonDistributor.register(new SyncingCommandHandler(this));
         return commonDistributor;
     }
 
@@ -206,40 +226,27 @@ public class GlobalContext {
         return registry;
     }
 
-    public void enterClusterMode() {
-        node.setMode(RunMode.CLUSTER);
-        this.cluster = new Cluster(this);
-        this.scheduler = new SingleThreadScheduler(properties);
-        this.connector = new Connector(this);
-    }
-
     public ScheduledFuture<?> electionTimeoutTask() {
-        return scheduler.scheduleElectionTimeoutTask(this::election);
-    }
-
-    private void election() {
-        executor.execute(this::prepareElection);
-    }
-
-    private void prepareElection() {
-        if (node.isLeader()) {
-            logger.warn("current node[{}] role type is leader, ignore this process.", properties.getNodeId());
-            return;
-        }
-        int currentTerm = node.getTerm();
-        if (node.isCandidate()) {
-            startElection(currentTerm + 1);
-        } else {
-            String selfId = node.getSelfId();
-            int oldCounts = cluster.inOldConfig(selfId) ? 1 : 0;
-            int newCounts = cluster.inNewConfig(selfId) ? 1 : 0;
-            node.changeToFollower(currentTerm, null, null, oldCounts, newCounts, 0L);
-            PreVoteMessage preVoteMessage = PreVoteMessage.builder()
-                .lastLogTerm(dataManager.getTermOfLastLog())
-                .lastLogIndex(dataManager.getIndexOfLastLog())
-                .build();
-            sendMessageToOthers(preVoteMessage);
-        }
+        return scheduler.scheduleElectionTimeoutTask(() -> {
+            if (node.isLeader()) {
+                logger.warn("current node[{}] role type is leader, ignore this process.", properties.getNodeId());
+                return;
+            }
+            int currentTerm = node.getTerm();
+            if (node.isCandidate()) {
+                startElection(currentTerm + 1);
+            } else {
+                String selfId = node.getSelfId();
+                int oldCounts = cluster.inOldConfig(selfId) ? 1 : 0;
+                int newCounts = cluster.inNewConfig(selfId) ? 1 : 0;
+                node.changeToFollower(currentTerm, null, null, oldCounts, newCounts, 0L);
+                PreVoteMessage preVoteMessage = PreVoteMessage.builder()
+                    .lastLogTerm(dataManager.getTermOfLastLog())
+                    .lastLogIndex(dataManager.getIndexOfLastLog())
+                    .build();
+                sendMessageToOthers(preVoteMessage);
+            }
+        });
     }
 
     public void startElection(int term) {
@@ -254,15 +261,15 @@ public class GlobalContext {
         sendMessageToOthers(requestVoteMessage);
     }
 
-    public ScheduledFuture<?> logReplicationTask() {
-        return scheduler.scheduleLogReplicationTask(this::logReplication);
+    public ScheduledFuture<?> logReplicationTask(boolean newThreadExec) {
+        if (newThreadExec) {
+            return scheduler.scheduleLogReplicationTask(this::doLogReplication);
+        }
+        doLogReplication();
+        return null;
     }
 
-    public void logReplication() {
-        executor.execute(this::doLogReplication);
-    }
-
-    public void doLogReplication() {
+    private void doLogReplication() {
         int currentTerm = node.getTerm();
         cluster.getAllEndpointExceptSelf().forEach(endpoint -> {
             // If the log is not being transmitted, the heartbeat detection information will be sent every time
@@ -299,12 +306,31 @@ public class GlobalContext {
     }
 
     public void sendMessage(Message message, Endpoint endpoint) {
-        message.setSourceId(properties.getNodeId());
-        connector.send(message, endpoint.getMetaData(), false);
+        message.setSourceId(node.getSelfId());
+        connector.send(message, endpoint.getMetaData());
     }
 
-    public void sendCommand(Message message, Endpoint endpoint) {
-        connector.send(message, endpoint.getMetaData(), true);
+    public void setProperty(String fieldName, Object value) {
+        Field field;
+        try {
+            field = properties.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(properties, value);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            logger.error("fail to set property[filed={}, value={}], error detail is {}.", fieldName, value, e.getStackTrace());
+        }
+    }
+
+    public Object getProperty(String fieldName) {
+        Field field;
+        try {
+            field = properties.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(properties);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            logger.error("fail to get property[filed={}], error detail is {}.", fieldName, e.getStackTrace());
+            return null;
+        }
     }
 
     public void advanceLastApplied(int newCommitIndex) {
@@ -436,10 +462,13 @@ public class GlobalContext {
         cluster.setPhase(Phase.SYNCING);
         logger.info("enter SYNCING phase");
 
-        cluster.getAllEndpointExceptSelf().forEach(endpoint -> {
+        cluster.getAllEndpointExceptSelf().parallelStream().forEach(endpoint -> {
             if (cluster.inNewConfig(endpoint.getNodeId())) {
-                SyncingMessage syncingMessage = new SyncingMessage(node.getTerm(), endpoint.getMetaData().getConnectorPort());
-                sendCommand(syncingMessage, endpoint);
+                SyncingCommand syncingCommand = SyncingCommand.builder().id(UUID.randomUUID().toString())
+                    .leaderMetaData(cluster.find(node.getSelfId()).getMetaData())
+                    .followerMetaData(endpoint.getMetaData())
+                    .term(node.getTerm()).build();
+                connector.send(syncingCommand, endpoint.getMetaData());
             }
         });
     }
@@ -489,7 +518,7 @@ public class GlobalContext {
     public void enterStablePhase() {
         Phase phase = currentPhase();
         if (phase != Phase.NEW) {
-            logger.warn("current phase[{}] is not NEW.", phase);
+            logger.debug("current phase[{}] is not NEW.", phase);
             return;
         }
         String selfId = node.getSelfId();

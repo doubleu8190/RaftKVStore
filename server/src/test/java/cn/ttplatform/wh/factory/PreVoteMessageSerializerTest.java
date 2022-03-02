@@ -37,8 +37,7 @@ public class PreVoteMessageSerializerTest {
 
     @Test
     public void create() {
-        PreVoteMessage message = PreVoteMessage.builder()
-            .term(0).lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+        PreVoteMessage message = PreVoteMessage.builder().lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
         byte[] bytes = factory.serialize(message);
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.deserialize(bytes, bytes.length));
@@ -47,8 +46,7 @@ public class PreVoteMessageSerializerTest {
 
     @Test
     public void testCreate() {
-        PreVoteMessage message = PreVoteMessage.builder()
-            .term(0).lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+        PreVoteMessage message = PreVoteMessage.builder().lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
         byte[] bytes = factory.serialize(message);
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bytes.length);
         byteBuffer.put(bytes);
@@ -63,8 +61,7 @@ public class PreVoteMessageSerializerTest {
 
     @Test
     public void getBytes() {
-        PreVoteMessage message = PreVoteMessage.builder()
-            .term(0).lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+        PreVoteMessage message = PreVoteMessage.builder().lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
         long begin = System.nanoTime();
         IntStream.range(0, 10000).forEach(index -> factory.serialize(message));
         log.info("serialize 10000 times cost {} ns.", System.nanoTime() - begin);
@@ -72,8 +69,7 @@ public class PreVoteMessageSerializerTest {
 
     @Test
     public void testGetBytes() {
-        PreVoteMessage message = PreVoteMessage.builder()
-            .term(0).lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
+        PreVoteMessage message = PreVoteMessage.builder().lastLogTerm(0).lastLogIndex(0).sourceId("A").build();
         UnpooledByteBufAllocator allocator = new UnpooledByteBufAllocator(true);
         ByteBuf byteBuf = allocator.directBuffer();
         long begin = System.nanoTime();

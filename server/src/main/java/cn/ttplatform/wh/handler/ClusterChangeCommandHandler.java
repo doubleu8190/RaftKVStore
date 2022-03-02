@@ -48,7 +48,7 @@ public class ClusterChangeCommandHandler extends AbstractDistributableHandler {
             channelPool.reply(cmd.getId(), requestFailedCommand);
         } else {
             Set<String> newConfigStr = cmd.getNewConfig();
-            Set<EndpointMetaData> newConfig = new HashSet<>(newConfigStr.size());
+            Set<EndpointMetaData> newConfig = new HashSet<>((int) (newConfigStr.size() / 0.75f) + 1);
             newConfigStr.forEach(metaData -> newConfig.add(new EndpointMetaData(metaData)));
             if (context.updateNewConfig(newConfig)) {
                 // If there is no added node, go directly to the OLD_NEW phase

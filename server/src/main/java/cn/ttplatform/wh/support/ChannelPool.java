@@ -16,10 +16,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ChannelPool {
 
-    private final Map<String, Channel> channelMap = new ConcurrentHashMap<>(65536);
+    private final Map<String, Channel> channelMap;
+
+    public ChannelPool() {
+        this(65535);
+    }
+
+    public ChannelPool(int initSize) {
+        this.channelMap = new ConcurrentHashMap<>(initSize);
+    }
 
     public void cacheChannel(String key, Channel channel) {
         channelMap.put(key, channel);
+        log.debug(channelMap.toString());
     }
 
     public Channel removeChannel(String key) {

@@ -8,6 +8,7 @@ import cn.ttplatform.wh.group.Cluster;
 import cn.ttplatform.wh.group.Connector;
 import cn.ttplatform.wh.role.*;
 import cn.ttplatform.wh.scheduler.SingleThreadScheduler;
+import java.net.InetSocketAddress;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -77,21 +78,19 @@ public class Node {
             context.advanceLastApplied(index);
         }
         this.server.listen();
+        log.info("mode is singleton");
     }
 
     private void startInClusterMode() {
-        Connector connector = new Connector(context);
-        connector.listen(properties.getConnectorHost(), properties.getConnectorPort());
-        context.setConnector(connector);
-        context.setScheduler(new SingleThreadScheduler(properties));
-        context.setCluster(new Cluster(context));
+        context.enableClusterComponent();
         this.role = Follower.builder()
-                .scheduledFuture(context.electionTimeoutTask())
-                .term(nodeState.getCurrentTerm())
-                .voteTo(nodeState.getVoteTo())
-                .preVoteCounts(1)
-                .build();
+            .scheduledFuture(context.electionTimeoutTask())
+            .term(nodeState.getCurrentTerm())
+            .voteTo(nodeState.getVoteTo())
+            .preVoteCounts(1)
+            .build();
         this.server.listen();
+        log.info("mode is cluster");
     }
 
     public int getTerm() {
@@ -121,7 +120,8 @@ public class Node {
         }
     }
 
-    public void changeToFollower(int term, String leaderId, String voteTo, int oldVoteCounts, int newVoteCounts, long lastHeartBeat) {
+    public void changeToFollower(int term, String leaderId, String voteTo, int oldVoteCounts, int newVoteCounts,
+        long lastHeartBeat) {
         int voteCounts = getVoteCounts(oldVoteCounts, newVoteCounts);
         Follower follower;
         if (role.getType() != RoleType.FOLLOWER) {
@@ -185,7 +185,7 @@ public class Node {
             leader.cancelTask();
         }
         leader.setTerm(term);
-        leader.setScheduledFuture(context.logReplicationTask());
+        leader.setScheduledFuture(context.logReplicationTask(true));
         this.role = leader;
         int index = context.pendingLog(Log.NO_OP_TYPE, new byte[0]);
         context.getCluster().resetReplicationStates(context.getDataManager().getLastIncludeIndex() + 1, index);
@@ -209,7 +209,8 @@ public class Node {
         public NodeState() {
             File stateFile = new File(properties.getBase(), METADATA_FILE_NAME);
             try (FileChannel fileChannel = FileChannel.open(stateFile.toPath(), READ, WRITE, CREATE, DSYNC)) {
-                this.mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, NODE_STATE_SPACE_POSITION, NODE_STATE_SPACE_SIZE);
+                this.mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, NODE_STATE_SPACE_POSITION,
+                    NODE_STATE_SPACE_SIZE);
                 this.spaceSize = mappedByteBuffer.getInt();
                 if (spaceSize < VOTE_TO_POSITION) {
                     updateSpaceSize(VOTE_TO_POSITION - spaceSize);
@@ -217,7 +218,8 @@ public class Node {
                 this.term = mappedByteBuffer.getInt(TERM_POSITION);
                 this.voteTo = getVoteTo();
             } catch (IOException e) {
-                throw new OperateFileException(String.format("failed to map a memory region[%d,%d].", 0, NODE_STATE_SPACE_SIZE - 1), e);
+                throw new OperateFileException(
+                    String.format("failed to map a memory region[%d,%d].", 0, NODE_STATE_SPACE_SIZE - 1), e);
             }
 
         }

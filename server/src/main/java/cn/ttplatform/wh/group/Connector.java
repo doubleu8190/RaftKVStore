@@ -1,6 +1,7 @@
 package cn.ttplatform.wh.group;
 
 import cn.ttplatform.wh.GlobalContext;
+import cn.ttplatform.wh.cmd.Command;
 import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.support.ChannelPool;
 import cn.ttplatform.wh.support.Message;
@@ -13,7 +14,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+
 import java.net.InetSocketAddress;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -48,15 +51,15 @@ public class Connector {
                 .handler(new CoreChannelInitializer(context));
     }
 
-    public void listen(String host, int port) {
+    public void listen(InetSocketAddress address) {
         ServerBootstrap serverBootstrap = new ServerBootstrap().group(boss, worker)
                 .channel(NioServerSocketChannel.class)
                 .childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE)
                 .childHandler(new CoreChannelInitializer(context));
         try {
-            serverBootstrap.bind(host, port).addListener(future -> {
+            serverBootstrap.bind(address).addListener(future -> {
                 if (future.isSuccess()) {
-                    log.info("Connector start in {}:{}", host, port);
+                    log.info("Connector start in {}", address);
                 }
             }).sync();
         } catch (InterruptedException e) {
@@ -99,17 +102,21 @@ public class Connector {
         }
     }
 
-    public ChannelFuture send(Message message, EndpointMetaData metaData, boolean cmd) {
-        Channel channel;
-        if (cmd) {
-            channel = getConnection(metaData.getCommandAddress(), null, false);
-        } else {
-            channel = getConnection(metaData.getConnectorAddress(), metaData.getNodeId(), true);
+    public void send(Message message, EndpointMetaData metaData) {
+        Channel channel = getConnection(metaData.getConnectorAddress(), metaData.getNodeId(), true);
+        if (channel != null) {
+            channel.writeAndFlush(message);
+            log.debug("encode a message[{}] to [{}]", message, channel);
         }
-        if (channel == null) {
-            return null;
+    }
+
+    public void send(Command cmd, EndpointMetaData metaData) {
+        Channel channel = getConnection(metaData.getCommandAddress(), null, false);
+        if (channel != null) {
+            channel.writeAndFlush(cmd).addListener(future -> {
+                log.debug("encode a cmd[{}] to [{}]", cmd, channel);
+                channel.disconnect();
+            });
         }
-        log.debug("encode a message[{}] to {}", message, metaData.getNodeId());
-        return channel.writeAndFlush(message);
     }
 }
