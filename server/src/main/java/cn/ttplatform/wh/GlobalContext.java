@@ -518,7 +518,7 @@ public class GlobalContext {
     public void enterStablePhase() {
         Phase phase = currentPhase();
         if (phase != Phase.NEW) {
-            logger.warn("current phase[{}] is not NEW.", phase);
+            logger.debug("current phase[{}] is not NEW.", phase);
             return;
         }
         String selfId = node.getSelfId();

@@ -40,10 +40,10 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         Channel channel = ctx.channel();
+        log.debug("active a channel[{}]", channel);
         ServerProperties properties = context.getProperties();
         if (channelFlushStrategyMap != null) {
-            channelFlushStrategyMap.put(channel,
-                new LazyFlushStrategy(channel, properties.getLazyFlushInterval(), properties.getLazyFlushThreshold()));
+            channelFlushStrategyMap.put(channel, new LazyFlushStrategy(channel, properties.getLazyFlushInterval(), properties.getLazyFlushThreshold()));
         }
     }
 
@@ -74,7 +74,7 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
             }
             log.info("current role is not a leader, redirect request to node[id={}]", leaderId);
             ctx.channel().writeAndFlush(RedirectCommand.builder().id(command.getId()).leader(leaderId)
-                .endpointMetaData(context.getCluster().getAllEndpointMetaData().toString()).build());
+                    .endpointMetaData(context.getCluster().getAllEndpointMetaData().toString()).build());
             return false;
         }
         return true;

@@ -20,11 +20,13 @@ public class Server {
     private final GlobalContext context;
     private final NioEventLoopGroup boss;
     private final NioEventLoopGroup worker;
+    private final ServerChannelInitializer serverChannelInitializer;
 
     public Server(GlobalContext context) {
         this.context = context;
         this.boss = context.getBoss();
         this.worker = context.getWorker();
+        this.serverChannelInitializer = new ServerChannelInitializer(context);
     }
 
     public void listen() {
@@ -33,7 +35,7 @@ public class Server {
             .channel(NioServerSocketChannel.class)
             .option(ChannelOption.SO_BACKLOG, properties.getBacklog())
             .childOption(ChannelOption.TCP_NODELAY, properties.isTcpNoDelay())
-            .childHandler(new ServerChannelInitializer(context));
+            .childHandler(serverChannelInitializer);
         String host = properties.getHost();
         int port = properties.getPort();
         try {

@@ -57,7 +57,7 @@ public class EndpointMetaData {
         if (connectorAddress==null){
             synchronized (EndpointMetaData.class){
                 if (connectorAddress==null){
-                    connectorAddress = new InetSocketAddress(host, commandPort);
+                    connectorAddress = new InetSocketAddress(host, connectorPort);
                 }
             }
         }

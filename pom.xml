@@ -18,11 +18,11 @@
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
     <lombok.version>1.18.18</lombok.version>
-    <netty-handler.version>4.1.51.Final</netty-handler.version>
+    <netty-handler.version>4.1.74.Final</netty-handler.version>
     <slf4j-api.version>1.7.30</slf4j-api.version>
     <slf4j-log4j12.version>1.7.30</slf4j-log4j12.version>
-    <protostuff-runtime.version>1.7.2</protostuff-runtime.version>
-    <protostuff-core.version>1.7.2</protostuff-core.version>
+    <protostuff-runtime.version>1.7.4</protostuff-runtime.version>
+    <protostuff-core.version>1.7.4</protostuff-core.version>
     <commons-cli.version>1.4</commons-cli.version>
     <junit.version>4.13.1</junit.version>
   </properties>

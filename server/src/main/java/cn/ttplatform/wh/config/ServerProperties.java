@@ -100,7 +100,7 @@ public class ServerProperties {
     /**
      * {@code linkedBuffPollSize} used for serialize/deserialize obj
      */
-    private int linkedBuffPollSize;
+    private int linkedBuffPoolSize;
 
     private int readIdleTimeout;
 
@@ -192,7 +192,7 @@ public class ServerProperties {
         snapshotGenerateThreshold = Integer.parseInt(properties.getProperty("snapshotGenerateThreshold"));
         maxTransferLogs = Integer.parseInt(properties.getProperty("maxTransferLogs"));
         maxTransferSize = Integer.parseInt(properties.getProperty("maxTransferSize"));
-        linkedBuffPollSize = Integer.parseInt(properties.getProperty("linkedBuffPollSize"));
+        linkedBuffPoolSize = Integer.parseInt(properties.getProperty("linkedBuffPoolSize"));
         readIdleTimeout = Integer.parseInt(properties.getProperty("readIdleTimeout"));
         writeIdleTimeout = Integer.parseInt(properties.getProperty("writeIdleTimeout"));
         allIdleTimeout = Integer.parseInt(properties.getProperty("allIdleTimeout"));

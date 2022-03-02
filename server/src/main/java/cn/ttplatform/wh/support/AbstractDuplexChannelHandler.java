@@ -1,12 +1,11 @@
 package cn.ttplatform.wh.support;
 
 import cn.ttplatform.wh.GlobalContext;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
+import io.netty.channel.*;
 import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
+
+import java.net.SocketAddress;
 
 /**
  * @author Wang Hao
@@ -27,8 +26,28 @@ public abstract class AbstractDuplexChannelHandler extends ChannelDuplexHandler 
     }
 
     @Override
+    public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) throws Exception {
+        super.connect(ctx, remoteAddress, localAddress, promise);
+        promise.addListener(channelFuture -> {
+            if (channelFuture.isSuccess()) {
+                log.debug("create a connection[{} - {}]", localAddress, remoteAddress);
+            }
+        });
+    }
+
+    @Override
+    public void disconnect(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+        super.disconnect(ctx, promise);
+        promise.addListener(channelFuture -> {
+            if (channelFuture.isSuccess()) {
+                log.debug("disconnect a connection[{}]", ctx.channel());
+            }
+        });
+    }
+
+    @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        if (cause!=null){
+        if (cause != null) {
             log.error(cause.toString());
         }
     }
