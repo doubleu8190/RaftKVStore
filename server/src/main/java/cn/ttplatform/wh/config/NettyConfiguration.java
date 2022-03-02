@@ -11,6 +11,8 @@ public class NettyConfiguration {
     private static final String ENV_HOST = "ENV_HOST";
     private static final String ENV_CMD_PORT = "ENV_CMD_PORT";
     private static final String ENV_CONNECTOR_PORT = "ENV_CONNECTOR_PORT";
+    private static final String ENV_BOSS_THREADS = "ENV_BOSS_THREADS";
+    private static final String ENV_WORKER_THREADS = "ENV_WORKER_THREADS";
     private static final String ENV_READ_IDLE_TIMEOUT = "ENV_READ_IDLE_TIMEOUT";
     private static final String ENV_WRITE_IDLE_TIMEOUT = "ENV_WRITE_IDLE_TIMEOUT";
     private static final String ENV_ALL_IDLE_TIMEOUT = "ENV_ALL_IDLE_TIMEOUT";
@@ -24,6 +26,9 @@ public class NettyConfiguration {
         properties.putIfAbsent("host", System.getProperty(ENV_HOST, "127.0.0.1"));
         properties.putIfAbsent("port", System.getProperty(ENV_CMD_PORT, "8190"));
         properties.putIfAbsent("connectorHost", System.getProperty(ENV_HOST, "127.0.0.1"));
+        properties.putIfAbsent("connectorPort", System.getProperty(ENV_CONNECTOR_PORT, "1013"));
+        properties.putIfAbsent("bossThreads", System.getProperty(ENV_BOSS_THREADS, "1"));
+        properties.putIfAbsent("workerThreads", System.getProperty(ENV_WORKER_THREADS, "1"));
         properties.putIfAbsent("connectorPort", System.getProperty(ENV_CONNECTOR_PORT, "1013"));
         properties.putIfAbsent("readIdleTimeout", System.getProperty(ENV_READ_IDLE_TIMEOUT, "0"));
         properties.putIfAbsent("writeIdleTimeout", System.getProperty(ENV_WRITE_IDLE_TIMEOUT, "0"));

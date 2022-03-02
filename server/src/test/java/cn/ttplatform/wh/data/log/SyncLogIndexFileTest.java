@@ -1,9 +1,11 @@
 package cn.ttplatform.wh.data.log;
 
+import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.data.index.LogIndex;
 import cn.ttplatform.wh.data.index.SyncLogIndexFile;
 import cn.ttplatform.wh.data.index.LogIndexFileMetadataRegion;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
+import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
@@ -31,7 +33,9 @@ public class SyncLogIndexFileTest {
 
     @Before
     public void setUp() throws IOException {
-        Pool<ByteBuffer> bufferPool = new DirectByteBufferPool(10, 1024 * 1024, 10 * 1024 * 1024);
+        ServerProperties properties = new ServerProperties();
+        Pool<ByteBuffer> bufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
+                properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("SyncLogIndexFile-", ".txt");
         File metaFile = File.createTempFile("SyncLogIndexMetaFile-", ".txt");
         LogIndexFileMetadataRegion logIndexFileMetadataRegion = new LogIndexFileMetadataRegion(metaFile);

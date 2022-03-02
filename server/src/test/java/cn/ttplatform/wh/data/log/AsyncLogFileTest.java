@@ -33,12 +33,14 @@ public class AsyncLogFileTest {
 
     @Before
     public void setUp() throws Exception {
-        bufferPool = new HeapByteBufferPool(10, 1024 * 1024, 10 * 1024 * 1024);
+        ServerProperties properties = new ServerProperties();
+        bufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
+                properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("AsyncLogFile-", ".txt");
         File metaFile = File.createTempFile("AsyncLogMetaFile-", ".txt");
         this.logFileMetadataRegion = FileConstant.getLogFileMetadataRegion(metaFile);
         this.generatingLogFileMetadataRegion = FileConstant.getGeneratingLogFileMetadataRegion(metaFile);
-        this.asyncLogFile = new AsyncLogFile(file, new ServerProperties(), bufferPool, logFileMetadataRegion);
+        this.asyncLogFile = new AsyncLogFile(file, properties, bufferPool, logFileMetadataRegion);
     }
 
     @After

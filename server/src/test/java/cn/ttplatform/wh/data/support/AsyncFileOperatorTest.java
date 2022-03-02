@@ -2,6 +2,7 @@ package cn.ttplatform.wh.data.support;
 
 import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
+import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
@@ -21,13 +22,16 @@ public class AsyncFileOperatorTest {
 
     AsyncFileOperator fileOperator;
     Pool<ByteBuffer> bufferPool;
+    ServerProperties properties;
 
     @Before
     public void setUp() throws Exception {
-        bufferPool = new DirectByteBufferPool(10, 1024 * 1024, 10 * 1024 * 1024);
+        properties = new ServerProperties();
+        bufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
+                properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("AsyncFileOperatorTest-", ".txt");
         File metaFile = File.createTempFile("AsyncLogMetaFile-", ".txt");
-        fileOperator = new AsyncFileOperator(new ServerProperties(), bufferPool, file);
+        fileOperator = new AsyncFileOperator(properties, bufferPool, file);
     }
 
     @After
@@ -53,7 +57,7 @@ public class AsyncFileOperatorTest {
 
     @Test
     public void appendBlock() {
-        int cap = 1024 * 1024;
+        int cap = properties.getBlockSize();
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(cap);
         long begin = System.nanoTime();
         fileOperator.appendBlock(0, byteBuffer);
