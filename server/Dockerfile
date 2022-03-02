@@ -4,4 +4,4 @@ RUN mkdir -p /home/admin/RaftKVStore & cp target/*-jar-with-dependencies.jar /ho
 
 WORKDIR /home/admin/RaftKVStore
 
-CMD ["java","jar","app.jar","m","singletong"]
+CMD ["java","jar","app.jar","m","singleton"]
