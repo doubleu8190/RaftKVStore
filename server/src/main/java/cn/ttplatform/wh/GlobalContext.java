@@ -132,7 +132,7 @@ public class GlobalContext {
     public GlobalContext(Node node) {
         this.node = node;
         this.properties = node.getProperties();
-        this.linkedBufferPool = new FixedSizeLinkedBufferPool(properties.getLinkedBuffPollSize());
+        this.linkedBufferPool = new FixedSizeLinkedBufferPool(properties.getLinkedBuffPoolSize());
         if (properties.isUseDirectByteBuffer()) {
             logger.debug("use DirectBufferAllocator");
             this.byteBufferPool = new DirectByteBufferPool(properties.getByteBufferPoolSize(),

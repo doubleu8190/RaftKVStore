@@ -20,7 +20,7 @@ public class Log4jConfiguration {
 
     private static final String PATTERN_LAYOUT = "org.apache.log4j.PatternLayout";
     private static final String APPENDER = "cn.ttplatform.wh.log4j.DailyRollingFileAppenderWrapper";
-    private static final String SEPARATOR = System.getProperty("path.separator");
+    private static final String SEPARATOR = System.getProperty("file.separator");
     private static final String DEFAULT_DIR = System.getProperty("user.home") + SEPARATOR + "raftkvstore" + SEPARATOR;
 
     public void configure(Properties properties) {
