@@ -25,7 +25,7 @@ public class LogStorageConfiguration {
         properties.putIfAbsent("useDirectByteBuffer", System.getProperty(ENV_USE_DIRECT_BYTEBUFFER, "true"));
         properties.putIfAbsent("linkedBuffPoolSize", System.getProperty(ENV_LINKED_BUFF_POOL_SIZE, "16"));
         properties.putIfAbsent("byteBufferPoolSize", System.getProperty(ENV_BYTEBUFFER_POOL_SIZE, "10"));
-        properties.putIfAbsent("byteBufferSizeLimit", System.getProperty(ENV_BYTEBUFFER_SIZE_LIMIT, String.valueOf(1024 * 1024 * 10)));
+        properties.putIfAbsent("byteBufferSizeLimit", System.getProperty(ENV_BYTEBUFFER_SIZE_LIMIT, String.valueOf(1024 * 1024 * 16)));
         properties.putIfAbsent("synLogFlush", System.getProperty(ENV_SYN_LOG_FLUSH, "false"));
         properties.putIfAbsent("blockSize", System.getProperty(ENV_BLOCK_SIZE, String.valueOf(1024 * 1024 * 4)));
         properties.putIfAbsent("blockFlushInterval", System.getProperty(ENV_BLOCK_FLUSH_INTERVAL, "1000"));
