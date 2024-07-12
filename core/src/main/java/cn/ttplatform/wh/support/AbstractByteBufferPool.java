@@ -24,6 +24,9 @@ public abstract class AbstractByteBufferPool implements Pool<ByteBuffer> {
 
     @Override
     public ByteBuffer allocate(int size) {
+        if (size % 4096 != 0) {
+            size = 4096 * (size / 4096 + 1);
+        }
         if (!pool.isEmpty()) {
             synchronized (this) {
                 Entry<Integer, ByteBuffer> bufferEntry = pool.ceilingEntry(size);

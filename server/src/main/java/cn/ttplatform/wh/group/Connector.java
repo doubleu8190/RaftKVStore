@@ -81,7 +81,7 @@ public class Connector {
             }
         }
         channel = connect(socketAddress);
-        if (channelCached) {
+        if (channel != null && channelCached) {
             channelPool.cacheChannel(remoteId, channel);
             channel.closeFuture().addListener(future -> {
                 if (future.isSuccess()) {

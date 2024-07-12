@@ -42,6 +42,7 @@ public class GenerateSnapshotTask implements Runnable {
         } catch (OperateFileException e) {
             log.error("generate snapshot failed, error detail is {}.", e.getMessage());
             stateMachine.stopGenerating();
+            throw e;
         }
     }
 

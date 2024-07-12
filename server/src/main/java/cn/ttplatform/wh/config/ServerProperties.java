@@ -169,7 +169,7 @@ public class ServerProperties {
     private void afterConfigure(Properties properties) {
         nodeId = properties.getProperty("nodeId");
         String modeProperty = properties.getProperty("mode");
-        if (RunMode.SINGLETON.toString().equals(modeProperty)) {
+        if (RunMode.SINGLETON.toString().equalsIgnoreCase(modeProperty)) {
             mode = RunMode.SINGLETON;
         } else {
             mode = RunMode.CLUSTER;

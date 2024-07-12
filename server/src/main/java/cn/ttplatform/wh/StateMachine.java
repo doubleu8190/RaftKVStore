@@ -129,7 +129,7 @@ public class StateMachine {
                 try {
                     mapSchema.mergeFrom(new ByteBufferInput(byteBuffer, true), data);
                 } catch (IOException e) {
-                    throw new MessageParseException(ErrorMessage.MESSAGE_PARSE_ERROR);
+                    throw new MessageParseException(ErrorMessage.MESSAGE_PARSE_ERROR, e);
                 }
                 return data;
             } finally {

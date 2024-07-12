@@ -41,8 +41,8 @@ public class FIFOFlushStrategy implements FlushStrategy {
 
     @Override
     public void flush(AsyncFileOperator.Block block) {
-        if (!shutdown) {
-            queue.offer(block);
+        if (!shutdown && (!queue.offer(block))) {
+            log.info("{} missing update.", block);
         }
     }
 

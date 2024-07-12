@@ -141,10 +141,10 @@ public class DataManager {
                     }
                     int offset = destination.position() - Integer.BYTES;
                     destination.position(offset);
-                    int cmdLength = Bits.getInt(destination);
+                    int contentLength = Bits.getInt(destination);
                     destination.position(offset);
                     Bits.putLong(position, destination);
-                    position = position + Log.HEADER_BYTES + cmdLength;
+                    position = position + Log.HEADER_BYTES + contentLength;
                 }
                 destination.limit(destination.position());
                 logIndexOperation.append(destination);

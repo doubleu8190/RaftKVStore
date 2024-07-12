@@ -41,10 +41,20 @@ public class AsyncLogFile implements LogOperation {
         fileOperator.appendInt(offset, log.getType());
         offset += 4;
         byte[] command = log.getCommand();
-        fileOperator.appendInt(offset, command.length);
+        int contentLength = 0;
+        if (command != null) {
+            contentLength = command.length + 4;
+            if (contentLength % 4 != 0) {
+                contentLength = 4 * (contentLength / 4 + 1);
+            }
+        }
+        fileOperator.appendInt(offset, contentLength);
         offset += 4;
-        fileOperator.appendBytes(offset, command);
-        offset += command.length;
+        if (command != null) {
+            fileOperator.appendInt(offset, command.length);
+            fileOperator.appendBytes(offset + 4, command);
+            offset += contentLength;
+        }
         return offset;
     }
 
@@ -75,12 +85,14 @@ public class AsyncLogFile implements LogOperation {
         start += 4;
         int type = fileOperator.getInt(start);
         start += 4;
-        int cmdLength = fileOperator.getInt(start);
+        int contentLength = fileOperator.getInt(start);
         start += 4;
         byte[] cmd = null;
-        if (cmdLength > 0) {
+        if (contentLength > 0) {
+            int cmdLength = fileOperator.getInt(start);
             cmd = new byte[cmdLength];
-            fileOperator.get(start, cmd);
+            fileOperator.get(start + 4, cmd);
+
         }
         return LogFactory.createEntry(type, term, index, cmd);
     }
@@ -90,6 +102,7 @@ public class AsyncLogFile implements LogOperation {
         int index;
         int term;
         int type;
+        int contentLength;
         int cmdLength;
         byte[] cmd;
         while (start < end) {
@@ -99,15 +112,16 @@ public class AsyncLogFile implements LogOperation {
             start += 4;
             type = fileOperator.getInt(start);
             start += 4;
-            cmdLength = fileOperator.getInt(start);
+            contentLength = fileOperator.getInt(start);
             start += 4;
-            if (cmdLength == 0) {
+            if (contentLength == 0) {
                 cmd = null;
             } else {
+                cmdLength = fileOperator.getInt(start);
                 cmd = new byte[cmdLength];
                 fileOperator.get(start, cmd);
             }
-            start += cmdLength;
+            start += contentLength;
             res.add(LogFactory.createEntry(type, term, index, cmd));
         }
     }

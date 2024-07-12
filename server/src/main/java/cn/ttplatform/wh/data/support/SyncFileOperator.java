@@ -2,6 +2,7 @@ package cn.ttplatform.wh.data.support;
 
 import cn.ttplatform.wh.exception.OperateFileException;
 import cn.ttplatform.wh.support.Pool;
+import com.sun.nio.file.ExtendedOpenOption;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -35,6 +36,7 @@ public class SyncFileOperator {
         ByteBuffer byteBuffer = bufferPool.allocate(bytes.length);
         byteBuffer.put(bytes, 0, length);
         byteBuffer.flip();
+        byteBuffer.limit(byteBuffer.capacity());
         try {
             fileChannel.write(byteBuffer, position);
         } catch (IOException e) {
@@ -67,17 +69,13 @@ public class SyncFileOperator {
     }
 
     public void readBytes(long position, ByteBuffer byteBuffer, int length) {
-        byteBuffer.limit(length);
-        int read;
         try {
-            read = fileChannel.read(byteBuffer, position);
+            fileChannel.read(byteBuffer, position);
         } catch (IOException e) {
             throw new OperateFileException(String.format("failed to read %d bytes from file at position[%d].", byteBuffer.limit(), position), e);
         }
-        if (read != length) {
-            throw new OperateFileException(String.format("required %d bytes, but read %d bytes from file at position[%d]", length, read, position));
-        }
         byteBuffer.flip();
+        byteBuffer.limit(length);
     }
 
     public void truncate(long position) {

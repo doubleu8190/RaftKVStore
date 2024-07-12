@@ -102,7 +102,7 @@ public class Client {
     }
 
     public Channel connect() throws InterruptedException {
-        return bootstrap.connect("127.0.0.1", 6666).sync().channel();
+        return bootstrap.connect("127.0.0.1", 7777).sync().channel();
     }
 
     public void close() {
@@ -113,14 +113,14 @@ public class Client {
         Watcher watcher = new Watcher();
         Client client = new Client(watcher);
         Channel connection = client.connect();
-        clusterChangeCommand(connection,watcher);
+//        clusterChangeCommand(connection,watcher);
 
-//        int target = 100000;
-//        watcher.reset(target);
-//        watcher.startWatch();
-//        log.info("test {} times SetCommand.", target);
-//        testSet(connection, target, 128);
-//        watcher.waitResult();
+        int target = 100000;
+        watcher.reset(target);
+        watcher.startWatch();
+        log.info("test {} times SetCommand.", target);
+        testSet(connection, target, 128);
+        watcher.waitResult();
 //
 //        target = 100000;
 //        watcher.reset(target);

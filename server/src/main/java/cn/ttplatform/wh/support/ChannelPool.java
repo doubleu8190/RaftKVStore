@@ -28,7 +28,6 @@ public class ChannelPool {
 
     public void cacheChannel(String key, Channel channel) {
         channelMap.put(key, channel);
-        log.debug(channelMap.toString());
     }
 
     public Channel removeChannel(String key) {

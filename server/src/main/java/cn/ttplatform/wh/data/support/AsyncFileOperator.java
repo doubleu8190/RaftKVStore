@@ -4,6 +4,7 @@ import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.exception.OperateFileException;
 import cn.ttplatform.wh.support.LRU;
 import cn.ttplatform.wh.support.Pool;
+import com.sun.nio.file.ExtendedOpenOption;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -149,22 +150,28 @@ public class AsyncFileOperator {
     }
 
     public void appendInt(long position, int v) {
-        write(position++, Bits.int3(v));
-        write(position++, Bits.int2(v));
-        write(position++, Bits.int1(v));
-        write(position, Bits.int0(v));
+        Block block = getBlock(position, (position & (blockSize - 1)) != 0);
+        block.putInt((int) (position - block.startOffset), v);
+        flushStrategy.flush(block);
     }
 
 
     public void appendLong(long position, long v) {
-        write(position++, Bits.long7(v));
-        write(position++, Bits.long6(v));
-        write(position++, Bits.long5(v));
-        write(position++, Bits.long4(v));
-        write(position++, Bits.long3(v));
-        write(position++, Bits.long2(v));
-        write(position++, Bits.long1(v));
-        write(position, Bits.long0(v));
+        Block block = getBlock(position, (position & (blockSize - 1)) != 0);
+        if (block.endOffset - position >= Long.BYTES) {
+            block.putLong((int) (position - block.startOffset), v);
+        } else {
+            int value = 0;
+            value |= (int) (v >>> Integer.BYTES);
+            block.putInt((int) (position - block.startOffset), value);
+            flushStrategy.flush(block);
+            position += Integer.BYTES;
+            block = getBlock(position, (position & (blockSize - 1)) != 0);
+            value = 0;
+            value |= (int) v;
+            block.putInt((int) (position - block.startOffset), value);
+        }
+        flushStrategy.flush(block);
     }
 
     public byte read(long position) {
@@ -173,12 +180,20 @@ public class AsyncFileOperator {
     }
 
     public int getInt(long position) {
-        return Bits.makeInt(read(position++), read(position++), read(position++), read(position));
+        Block block = getBlock(position, true);
+        return block.getInt((int) (position - block.startOffset));
     }
 
     public long getLong(long position) {
-        return Bits.makeLong(read(position++), read(position++), read(position++), read(position++),
-                read(position++), read(position++), read(position++), read(position));
+        Block block = getBlock(position, true);
+        if (block.endOffset - position >= Long.BYTES) {
+            return block.getLong((int) (position - block.startOffset));
+        }
+        long l = block.getInt((int) (position - block.startOffset));
+        position += Integer.BYTES;
+        block = getBlock(position, true);
+        long r = block.getInt((int) (position - block.startOffset));
+        return (l << Integer.BYTES) | r;
     }
 
     public void get(long position, byte[] bytes) {
@@ -275,7 +290,7 @@ public class AsyncFileOperator {
                         state = (byte) (state >>> 1 << 1);
                         log.info("flush a dirty block[{}] into {}.", this, file);
                     }
-//                    fileChannel.force(true);
+                    fileChannel.force(true);
                 }
             } catch (IOException e) {
                 throw new OperateFileException(String.format("failed to write %d bytes into file at offset[%d].", byteBuffer.limit(), startOffset), e);
@@ -301,6 +316,18 @@ public class AsyncFileOperator {
         public synchronized void put(int position, byte[] src, int offset, int length) {
             byteBuffer.position(position);
             byteBuffer.put(src, offset, length);
+            state |= 0x07;
+        }
+
+        public synchronized void putInt(int position, int i) {
+            byteBuffer.position(position);
+            byteBuffer.putInt(i);
+            state |= 0x07;
+        }
+
+        public synchronized void putLong(int position, long l) {
+            byteBuffer.position(position);
+            byteBuffer.putLong(l);
             state |= 0x07;
         }
 
@@ -331,6 +358,16 @@ public class AsyncFileOperator {
         public synchronized byte get(int position) {
             byteBuffer.position(position);
             return byteBuffer.get();
+        }
+
+        public synchronized int getInt(int position) {
+            byteBuffer.position(position);
+            return byteBuffer.getInt();
+        }
+
+        public synchronized long getLong(int position) {
+            byteBuffer.position(position);
+            return byteBuffer.getLong();
         }
 
         public synchronized ByteBuffer getByteBuffer() {
