@@ -54,7 +54,7 @@ public class AsyncLogFileTest {
         long begin = System.nanoTime();
         asyncLogFile.append(LogFactory.createEntry(1, 1, 1, content));
         log.info("append 1 log cost {} ns", System.nanoTime() - begin);
-        Assert.assertEquals(Log.HEADER_BYTES + content.length, asyncLogFile.size());
+        Assert.assertEquals(Log.HEADER_BYTES + 4 + content.length, asyncLogFile.size());
     }
 
     @Test
@@ -66,7 +66,7 @@ public class AsyncLogFileTest {
         long begin = System.nanoTime();
         long[] append = asyncLogFile.append(logEntries);
         log.info("append {} logs cost {} ns", capacity, System.nanoTime() - begin);
-        assertEquals((long) capacity * (Log.HEADER_BYTES + content.length), asyncLogFile.size());
+        assertEquals((long) capacity * (Log.HEADER_BYTES + 4 + content.length), asyncLogFile.size());
     }
 
     @Test

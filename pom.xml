@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>cn.ttplatform.wh</groupId>
@@ -15,16 +15,17 @@
   </modules>
 
   <properties>
-    <maven.compiler.source>8</maven.compiler.source>
-    <maven.compiler.target>8</maven.compiler.target>
-    <lombok.version>1.18.18</lombok.version>
-    <netty-handler.version>4.1.74.Final</netty-handler.version>
-    <slf4j-api.version>1.7.30</slf4j-api.version>
-    <slf4j-log4j12.version>1.7.30</slf4j-log4j12.version>
-    <protostuff-runtime.version>1.7.4</protostuff-runtime.version>
-    <protostuff-core.version>1.7.4</protostuff-core.version>
-    <commons-cli.version>1.4</commons-cli.version>
-    <junit.version>4.13.1</junit.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <lombok.version>1.18.30</lombok.version>
+    <netty-handler.version>4.1.108.Final</netty-handler.version>
+    <slf4j-api.version>2.0.9</slf4j-api.version>
+    <slf4j-log4j12.version>2.0.9</slf4j-log4j12.version>
+    <protostuff-runtime.version>1.8.0</protostuff-runtime.version>
+    <protostuff-core.version>1.8.0</protostuff-core.version>
+    <commons-cli.version>1.6.0</commons-cli.version>
+    <junit.version>4.13.2</junit.version>
+    <maven.compiler.plugin.version>3.12.1</maven.compiler.plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -75,5 +76,53 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven.compiler.plugin.version}</version>
+          <configuration>
+            <source>${maven.compiler.source}</source>
+            <target>${maven.compiler.target}</target>
+            <encoding>UTF-8</encoding>
+            <compilerArgs>
+              <arg>-parameters</arg>
+              <!-- 解决Lombok在Java 9+中的模块访问问题 -->
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+              <arg>--add-opens</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+            </compilerArgs>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 
 </project>

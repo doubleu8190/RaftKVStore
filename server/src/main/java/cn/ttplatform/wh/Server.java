@@ -1,13 +1,11 @@
 package cn.ttplatform.wh;
 
 import cn.ttplatform.wh.config.ServerProperties;
-import cn.ttplatform.wh.support.ChannelPool;
 import cn.ttplatform.wh.support.ServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,22 +30,29 @@ public class Server {
     public void listen() {
         ServerProperties properties = context.getProperties();
         ServerBootstrap serverBootstrap = new ServerBootstrap().group(boss, worker)
-            .channel(NioServerSocketChannel.class)
-            .option(ChannelOption.SO_BACKLOG, properties.getBacklog())
-            .childOption(ChannelOption.TCP_NODELAY, properties.isTcpNoDelay())
-            .childHandler(serverChannelInitializer);
+                .channel(NioServerSocketChannel.class)
+                .option(ChannelOption.SO_BACKLOG, properties.getBacklog())
+                .childOption(ChannelOption.TCP_NODELAY, properties.isTcpNoDelay())
+                .childHandler(serverChannelInitializer);
         String host = properties.getHost();
         int port = properties.getPort();
         try {
             serverBootstrap.bind(host, port).addListener(future -> {
                 if (future.isSuccess()) {
                     log.info("server start in {}:{}", host, port);
+                } else {
+                    log.error("failed to bind server to {}:{}, cause: {}", host, port, future.cause());
+                    stop();
                 }
             }).sync();
         } catch (InterruptedException e) {
-            log.error("failed to start server.");
+            log.error("server startup interrupted: {}", e.getMessage());
             stop();
             Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            log.error("failed to start server on {}:{}, cause: {}", host, port, e.getMessage(), e);
+            stop();
+            throw new RuntimeException("Server startup failed", e);
         }
     }
 

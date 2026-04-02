@@ -30,14 +30,17 @@ public class RequestVoteMessageHandler extends AbstractDistributableHandler {
     @Override
     public void doHandleInClusterMode(Distributable distributable) {
         RequestVoteMessage message = (RequestVoteMessage) distributable;
-        context.sendMessage(process(message), message.getSourceId());
+        RequestVoteResultMessage resultMessage = process(message);
+        if (resultMessage != null) {
+            context.sendMessage(resultMessage, message.getSourceId());
+        }
     }
 
     private RequestVoteResultMessage process(RequestVoteMessage message) {
         Node node = context.getNode();
         Role role = node.getRole();
         if (node.isFollower() && System.currentTimeMillis() - ((Follower) role).getLastHeartBeat() < context.getProperties()
-            .getMinElectionTimeout()) {
+                .getMinElectionTimeout()) {
             log.debug("current leader is alive, reject this request vote message.");
             return null;
         }
@@ -47,8 +50,8 @@ public class RequestVoteMessageHandler extends AbstractDistributableHandler {
         int lastLogTerm = message.getLastLogTerm();
         String candidateId = message.getSourceId();
         RequestVoteResultMessage requestVoteResultMessage = RequestVoteResultMessage.builder()
-            .isVoted(Boolean.FALSE).term(currentTerm)
-            .build();
+                .isVoted(Boolean.FALSE).term(currentTerm)
+                .build();
         if (term < currentTerm) {
             log.debug("the term[{}] < currentTerm[{}], reject this request vote message.", term, currentTerm);
             return requestVoteResultMessage;

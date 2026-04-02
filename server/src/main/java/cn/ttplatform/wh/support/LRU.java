@@ -18,6 +18,9 @@ public class LRU<K, V> {
     private KVEntry<K, V> tail;
 
     public LRU(int capacity) {
+        if (capacity <= 0) {
+            throw new IllegalArgumentException("Capacity must be positive: " + capacity);
+        }
         this.capacity = capacity;
         this.cache = new HashMap<>((int) (capacity / 0.75f) + 1);
         // head is a Sentinel node
@@ -90,8 +93,10 @@ public class LRU<K, V> {
 
     public void clear() {
         cache.clear();
-        head.next.pre = null;
-        head.next = null;
+        if (head.next != null) {
+            head.next.pre = null;
+            head.next = null;
+        }
         tail = head;
         used = 0;
     }
@@ -100,6 +105,7 @@ public class LRU<K, V> {
         KVEntry<K, V> kvEntry = cache.get(key);
         if (kvEntry != null) {
             remove(kvEntry);
+            used--;
         }
         return kvEntry;
     }
@@ -124,6 +130,7 @@ public class LRU<K, V> {
         return "LRU{" +
                 "capacity=" + capacity +
                 ", used=" + used +
+                ", size=" + cache.size() +
                 '}';
     }
 

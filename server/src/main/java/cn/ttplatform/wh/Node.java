@@ -4,11 +4,7 @@ import cn.ttplatform.wh.config.RunMode;
 import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.data.log.Log;
 import cn.ttplatform.wh.exception.OperateFileException;
-import cn.ttplatform.wh.group.Cluster;
-import cn.ttplatform.wh.group.Connector;
 import cn.ttplatform.wh.role.*;
-import cn.ttplatform.wh.scheduler.SingleThreadScheduler;
-import java.net.InetSocketAddress;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -84,11 +80,11 @@ public class Node {
     private void startInClusterMode() {
         context.enableClusterComponent();
         this.role = Follower.builder()
-            .scheduledFuture(context.electionTimeoutTask())
-            .term(nodeState.getCurrentTerm())
-            .voteTo(nodeState.getVoteTo())
-            .preVoteCounts(1)
-            .build();
+                .scheduledFuture(context.electionTimeoutTask())
+                .term(nodeState.getCurrentTerm())
+                .voteTo(nodeState.getVoteTo())
+                .preVoteCounts(1)
+                .build();
         this.server.listen();
         log.info("mode is cluster");
     }
@@ -121,7 +117,7 @@ public class Node {
     }
 
     public void changeToFollower(int term, String leaderId, String voteTo, int oldVoteCounts, int newVoteCounts,
-        long lastHeartBeat) {
+                                 long lastHeartBeat) {
         int voteCounts = getVoteCounts(oldVoteCounts, newVoteCounts);
         Follower follower;
         if (role.getType() != RoleType.FOLLOWER) {
@@ -210,7 +206,7 @@ public class Node {
             File stateFile = new File(properties.getBase(), METADATA_FILE_NAME);
             try (FileChannel fileChannel = FileChannel.open(stateFile.toPath(), READ, WRITE, CREATE, DSYNC)) {
                 this.mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, NODE_STATE_SPACE_POSITION,
-                    NODE_STATE_SPACE_SIZE);
+                        NODE_STATE_SPACE_SIZE);
                 this.spaceSize = mappedByteBuffer.getInt();
                 if (spaceSize < VOTE_TO_POSITION) {
                     updateSpaceSize(VOTE_TO_POSITION - spaceSize);
@@ -219,7 +215,7 @@ public class Node {
                 this.voteTo = getVoteTo();
             } catch (IOException e) {
                 throw new OperateFileException(
-                    String.format("failed to map a memory region[%d,%d].", 0, NODE_STATE_SPACE_SIZE - 1), e);
+                        String.format("failed to map a memory region[%d,%d].", 0, NODE_STATE_SPACE_SIZE - 1), e);
             }
 
         }

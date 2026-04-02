@@ -4,7 +4,6 @@ import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.exception.OperateFileException;
 import cn.ttplatform.wh.support.LRU;
 import cn.ttplatform.wh.support.Pool;
-import com.sun.nio.file.ExtendedOpenOption;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -244,7 +243,7 @@ public class AsyncFileOperator {
          * --------------------valid
          * ------------------------exist
          * ---------------------------dirty
-         * 0    0   0   0   0   0   0   0
+         * 0   0   0   0   0   0   0   0
          */
         volatile byte state;
         ByteBuffer byteBuffer;
