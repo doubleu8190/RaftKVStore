@@ -38,8 +38,8 @@ public class PriorityFlushStrategy implements FlushStrategy {
 
     @Override
     public void flush(AsyncFileOperator.Block block) {
-        if (!shutdown) {
-            synchronized (blocks) {
+        synchronized (blocks) {
+            if (!shutdown) {
                 blocks.add(block);
             }
         }

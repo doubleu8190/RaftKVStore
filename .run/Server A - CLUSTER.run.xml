@@ -3,7 +3,7 @@
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-26" />
     <option name="MAIN_CLASS_NAME" value="cn.ttplatform.wh.ServerLauncher" />
     <module name="server" />
-    <option name="PROGRAM_PARAMETERS" value="-c $PROJECT_DIR$/server/src/main/resources/B/server.properties" />
+    <option name="PROGRAM_PARAMETERS" value="-c $PROJECT_DIR$/server/src/main/resources/A/server.properties" />
     <option name="VM_PARAMETERS" value="-Xmx8G -Xms8G" />
     <extension name="coverage">
       <pattern>
