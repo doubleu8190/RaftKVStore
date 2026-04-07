@@ -1,10 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Server C - CLUSTER" type="Application" factoryName="Application">
+  <configuration default="false" name="Server B - CLUSTER" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-26" />
-    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="cn.ttplatform.wh.ServerLauncher" />
     <module name="server" />
-    <option name="PROGRAM_PARAMETERS" value="-c C:\Users\14274\Documents\jetbrains\RaftKVStore\server\src\main\resources\C\server.properties" />
+    <option name="PROGRAM_PARAMETERS" value="-c $PROJECT_DIR$/server/src/main/resources/C/server.properties" />
     <option name="VM_PARAMETERS" value="-Xmx8G -Xms8G" />
     <extension name="coverage">
       <pattern>
