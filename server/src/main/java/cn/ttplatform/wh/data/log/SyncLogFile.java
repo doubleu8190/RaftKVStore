@@ -32,14 +32,24 @@ public class SyncLogFile implements LogOperation {
     public long append(Log log) {
         long offset = logFileMetadataRegion.getFileSize();
         byte[] command = log.getCommand();
-        int length = LOG_HEADER_SIZE + command.length;
+        int contentLength = 0;
+        if (command != null) {
+            contentLength = command.length + 4;
+            if (contentLength % 4 != 0) {
+                contentLength = 4 * (contentLength / 4 + 1);
+            }
+        }
+        int length = LOG_HEADER_SIZE + contentLength;
         ByteBuffer byteBuffer = byteBufferPool.allocate(length);
         try {
-            Bits.putInt(log.getIndex(), byteBuffer);
-            Bits.putInt(log.getTerm(), byteBuffer);
-            Bits.putInt(log.getType(), byteBuffer);
-            Bits.putInt(command.length, byteBuffer);
-            byteBuffer.put(command);
+            byteBuffer.putInt(log.getIndex());
+            byteBuffer.putInt(log.getTerm());
+            byteBuffer.putInt(log.getType());
+            byteBuffer.putInt(contentLength);
+            if (command != null) {
+                byteBuffer.putInt(command.length);
+                byteBuffer.put(command);
+            }
             fileOperator.append(offset, byteBuffer, length);
             logFileMetadataRegion.recordFileSize(offset + length);
         } finally {
@@ -52,21 +62,35 @@ public class SyncLogFile implements LogOperation {
     public long[] append(List<Log> logs) {
         long base = logFileMetadataRegion.getFileSize();
         long[] offsets = new long[logs.size()];
+        int[] contentLengths = new int[logs.size()];
         long offset = base;
         for (int i = 0; i < logs.size(); i++) {
             offsets[i] = offset;
-            offset += (LOG_HEADER_SIZE + logs.get(i).getCommand().length);
+            byte[] command = logs.get(i).getCommand();
+            int contentLength = 0;
+            if (command != null) {
+                contentLength = command.length + 4;
+                if (contentLength % 4 != 0) {
+                    contentLength = 4 * (contentLength / 4 + 1);
+                }
+            }
+            contentLengths[i] = contentLength;
+            offset += (LOG_HEADER_SIZE + contentLength);
         }
         int contentLength = (int) (offset - base);
         ByteBuffer byteBuffer = byteBufferPool.allocate(contentLength);
         try {
-            for (Log log : logs) {
-                Bits.putInt(log.getIndex(), byteBuffer);
-                Bits.putInt(log.getTerm(), byteBuffer);
-                Bits.putInt(log.getType(), byteBuffer);
+            for (int i = 0; i < logs.size(); i++) {
+                Log log = logs.get(i);
+                byteBuffer.putInt(log.getIndex());
+                byteBuffer.putInt(log.getTerm());
+                byteBuffer.putInt(log.getType());
+                byteBuffer.putInt(contentLengths[i]);
                 byte[] command = log.getCommand();
-                Bits.putInt(command.length, byteBuffer);
-                byteBuffer.put(command);
+                if (command != null) {
+                    byteBuffer.putInt(command.length);
+                    byteBuffer.put(command);
+                }
             }
             fileOperator.append(base, byteBuffer, contentLength);
             logFileMetadataRegion.recordFileSize(offset);
@@ -138,13 +162,14 @@ public class SyncLogFile implements LogOperation {
                 int index = Bits.getInt(byteBuffer);
                 int term = Bits.getInt(byteBuffer);
                 int type = Bits.getInt(byteBuffer);
+                int contentLength = Bits.getInt(byteBuffer);
                 int cmdLength = Bits.getInt(byteBuffer);
                 byte[] cmd = null;
                 if (cmdLength > 0) {
                     cmd = new byte[cmdLength];
                     byteBuffer.get(cmd, 0, cmdLength);
                 }
-                offset += cmdLength + LOG_HEADER_SIZE;
+                offset += (contentLength + LOG_HEADER_SIZE);
                 res.add(LogFactory.createEntry(type, term, index, cmd));
             }
         } finally {

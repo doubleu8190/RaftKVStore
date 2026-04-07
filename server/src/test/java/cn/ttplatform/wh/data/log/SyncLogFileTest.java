@@ -50,9 +50,18 @@ public class SyncLogFileTest {
     public void append() {
         byte[] content = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
         long begin = System.nanoTime();
-        syncLogFile.append(LogFactory.createEntry(1, 1, 1, content));
+        Log entry = LogFactory.createEntry(1, 1, 1, content);
+        syncLogFile.append(entry);
         log.info("append 1 log cost {} ns", (System.nanoTime() - begin));
-        Assert.assertEquals(Log.HEADER_BYTES + content.length, syncLogFile.size());
+        byte[] command = entry.getCommand();
+        int contentLength = 0;
+        if (command != null) {
+            contentLength = command.length + 4;
+            if (contentLength % 4 != 0) {
+                contentLength = 4 * (contentLength / 4 + 1);
+            }
+        }
+        Assert.assertEquals(Log.HEADER_BYTES + contentLength, syncLogFile.size());
     }
 
     @Test

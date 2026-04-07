@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Server B - CLUSTER" type="Application" factoryName="Application">
+  <configuration default="false" name="Server A - CLUSTER" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-26" />
     <option name="MAIN_CLASS_NAME" value="cn.ttplatform.wh.ServerLauncher" />
     <module name="server" />

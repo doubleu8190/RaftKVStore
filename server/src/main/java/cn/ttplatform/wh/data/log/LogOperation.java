@@ -10,10 +10,17 @@ import java.util.List;
 public interface LogOperation {
 
     /**
-     * index(4 bytes) + term(4 bytes) + type(4 bytes) + commandLength(4 bytes) = 16
+     * index(4 bytes) + term(4 bytes) + type(4 bytes) + contentLength(4 bytes) = 16
      */
     int LOG_HEADER_SIZE = 4 + 4 + 4 + 4;
 
+    /**
+     * Append a log to file
+     * 将日志追加到文件，日志长度对齐到4的倍数，因此内存布局将会是这样
+     * index｜term｜type｜contentLength｜commandLength｜command｜padding（必要时填充）
+     * @param log log to append
+     * @return next offset
+     */
     long append(Log log);
 
     long[] append(List<Log> logs);

@@ -33,14 +33,6 @@ public class AsyncLogFile implements LogOperation {
         return offset;
     }
 
-    /**
-     * Append a log to file
-     * jdk升级到11后，内存buffer需要对齐到4的倍数，否则会报错，因此内存布局将会是这样
-     * index｜term｜type｜contentLength｜commandLength｜command｜padding（必要时填充）
-     * @param offset offset to append log
-     * @param log log to append
-     * @return next offset
-     */
     private long append0(long offset, Log log) {
         fileOperator.appendInt(offset, log.getIndex());
         offset += 4;
@@ -52,7 +44,6 @@ public class AsyncLogFile implements LogOperation {
         int contentLength = 0;
         if (command != null) {
             contentLength = command.length + 4;
-            // jdk 升级到11后，内存buffer需要对齐到4的倍数，否则会报错，因此需要填充padding，当前实现是留空
             if (contentLength % 4 != 0) {
                 contentLength = 4 * (contentLength / 4 + 1);
             }
@@ -128,7 +119,7 @@ public class AsyncLogFile implements LogOperation {
             } else {
                 cmdLength = fileOperator.getInt(start);
                 cmd = new byte[cmdLength];
-                fileOperator.get(start, cmd);
+                fileOperator.get(start + 4, cmd);
             }
             start += contentLength;
             res.add(LogFactory.createEntry(type, term, index, cmd));

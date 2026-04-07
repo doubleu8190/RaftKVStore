@@ -347,6 +347,7 @@ public class GlobalContext {
             applied = lastIncludeIndex;
         }
         applyLogs(dataManager.range(applied + 1, newCommitIndex + 1));
+        logger.info("advanceLastApplied, newCommitIndex is {}.", newCommitIndex);
         if (dataManager.shouldGenerateSnapshot(properties.getSnapshotGenerateThreshold())) {
             boolean result = stateMachine.startGenerating();
             if (result) {

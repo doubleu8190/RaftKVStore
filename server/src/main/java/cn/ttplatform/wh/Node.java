@@ -140,6 +140,7 @@ public class Node {
         follower.setVoteTo(voteTo);
         follower.setLastHeartBeat(lastHeartBeat);
         this.role = follower;
+        log.info("become follower.");
     }
 
     public void changeToCandidate(int term, int oldVoteCounts, int newVoteCounts) {
@@ -163,6 +164,7 @@ public class Node {
         candidate.setScheduledFuture(context.electionTimeoutTask());
         candidate.setVoteCounts(voteCounts);
         this.role = candidate;
+        log.info("become candidate.");
     }
 
     public void changeToLeader(int term) {

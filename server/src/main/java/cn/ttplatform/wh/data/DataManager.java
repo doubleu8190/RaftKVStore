@@ -470,10 +470,12 @@ public class DataManager {
      */
     public List<Log> range(int from, int to) {
         if (isEmpty()) {
+            logger.debug("log collection is empty.");
             return Collections.emptyList();
         }
         int lastIndex = getIndexOfLastLog();
         if (from >= to || from > lastIndex) {
+            logger.debug("invalid from[{}] and to[{}], lastIndex[{}]", from, to, lastIndex);
             return Collections.emptyList();
         }
         from = Math.max(logIndexOperation.getMinIndex(), from);
@@ -482,13 +484,22 @@ public class DataManager {
         List<Log> res = new ArrayList<>(to - from);
         int maxLogIndex = logIndexOperation.getMaxIndex();
         if (from > maxLogIndex) {
+            // 如果from索引在文件中最大索引之后，直接从pending中获取
             IntStream.range(from, to).forEach(index -> res.add(pending.get(index)));
             return res;
         }
         long start = logIndexOperation.getLogOffset(from);
+        if (start == -1L) {
+            logger.debug("can't find logIndex at index[{}]", from);
+            return Collections.emptyList();
+        }
         long end;
         if (to <= maxLogIndex) {
             end = logIndexOperation.getLogOffset(to);
+            if (end == -1L) {
+                logger.debug("can't find logIndex at index[{}]", to);
+                return Collections.emptyList();
+            }
         } else {
             end = logOperation.size();
         }
