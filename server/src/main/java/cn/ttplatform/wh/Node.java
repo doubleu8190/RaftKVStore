@@ -183,10 +183,10 @@ public class Node {
             leader.cancelTask();
         }
         leader.setTerm(term);
-        leader.setScheduledFuture(context.logReplicationTask(true));
         this.role = leader;
         int index = context.pendingLog(Log.NO_OP_TYPE, new byte[0]);
         context.getCluster().resetReplicationStates(context.getDataManager().getLastIncludeIndex() + 1, index);
+        leader.setScheduledFuture(context.logReplicationTask(true));
         if (log.isInfoEnabled()) {
             log.info("become leader.");
             log.info("reset all node replication state with nextIndex[{}]", index);
