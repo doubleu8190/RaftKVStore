@@ -260,7 +260,10 @@ public class Node {
          * @param voteTo the node id that vote for
          */
         public void setVoteTo(String voteTo) {
-            if (voteTo == null || "".equals(voteTo)) {
+            if (voteTo == null || voteTo.isEmpty()) {
+                spaceSize = VOTE_TO_POSITION;
+                mappedByteBuffer.putInt(SIZE_POSITION, spaceSize);
+                this.voteTo = null;
                 return;
             }
             byte[] voteToBytes = voteTo.getBytes(StandardCharsets.UTF_8);
@@ -282,6 +285,9 @@ public class Node {
         public String getVoteTo() {
             if (voteTo != null) {
                 return voteTo;
+            }
+            if (spaceSize < VOTE_TO_POSITION) {
+                return null;
             }
             byte[] voteToBytes = new byte[spaceSize - VOTE_TO_POSITION];
             mappedByteBuffer.position(VOTE_TO_POSITION);

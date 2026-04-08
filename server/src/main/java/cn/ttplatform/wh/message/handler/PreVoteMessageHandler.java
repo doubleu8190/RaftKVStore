@@ -31,12 +31,13 @@ public class PreVoteMessageHandler extends AbstractDistributableHandler {
     public void doHandleInClusterMode(Distributable distributable) {
         Node node = context.getNode();
         Role role = node.getRole();
+        PreVoteMessage message = (PreVoteMessage) distributable;
         if (node.isFollower() && System.currentTimeMillis() - ((Follower) role).getLastHeartBeat() < context.getProperties()
             .getMinElectionTimeout()) {
             log.debug("current leader is alive, reject this pre request vote message.");
+            context.sendMessage(PreVoteResultMessage.builder().isVoted(false).build(), message.getSourceId());
             return;
         }
-        PreVoteMessage message = (PreVoteMessage) distributable;
         PreVoteResultMessage preVoteResultMessage = PreVoteResultMessage.builder()
             .isVoted(!context.getDataManager().isNewerThan(message.getLastLogIndex(), message.getLastLogTerm()))
             .build();
