@@ -129,17 +129,17 @@ clusterInfo=A,127.0.0.1,6666,6665 B,127.0.0.1,7777,7776 C,127.0.0.1,8888,8887
 
 ```bash
 # 启动单个节点
-java -jar server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar --config /path/to/server.properties
+java -jar server/target/server-1.0-jar-with-dependencies.jar --config /path/to/server.properties
 
 # 启动集群（需要分别启动多个节点）
 # 节点A
-java -jar server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar --config config/A/server.properties
+java -jar server/target/server-1.0-jar-with-dependencies.jar --config config/A/server.properties
 
 # 节点B
-java -jar server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar --config config/B/server.properties
+java -jar server/target/server-1.0-jar-with-dependencies.jar --config config/B/server.properties
 
 # 节点C
-java -jar server/target/server-1.0-SNAPSHOT-jar-with-dependencies.jar --config config/C/server.properties
+java -jar server/target/server-1.0-jar-with-dependencies.jar --config config/C/server.properties
 ```
 
 ## API 使用
