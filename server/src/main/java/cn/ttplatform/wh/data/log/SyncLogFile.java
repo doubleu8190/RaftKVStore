@@ -32,13 +32,7 @@ public class SyncLogFile implements LogOperation {
     public long append(Log log) {
         long offset = logFileMetadataRegion.getFileSize();
         byte[] command = log.getCommand();
-        int contentLength = 0;
-        if (command != null) {
-            contentLength = command.length + 4;
-            if (contentLength % 4 != 0) {
-                contentLength = 4 * (contentLength / 4 + 1);
-            }
-        }
+        int contentLength = calContentLength(command);
         int length = LOG_HEADER_SIZE + contentLength;
         ByteBuffer byteBuffer = byteBufferPool.allocate(length);
         try {
@@ -67,13 +61,7 @@ public class SyncLogFile implements LogOperation {
         for (int i = 0; i < logs.size(); i++) {
             offsets[i] = offset;
             byte[] command = logs.get(i).getCommand();
-            int contentLength = 0;
-            if (command != null) {
-                contentLength = command.length + 4;
-                if (contentLength % 4 != 0) {
-                    contentLength = 4 * (contentLength / 4 + 1);
-                }
-            }
+            int contentLength = calContentLength(command);
             contentLengths[i] = contentLength;
             offset += (LOG_HEADER_SIZE + contentLength);
         }
@@ -112,7 +100,7 @@ public class SyncLogFile implements LogOperation {
      *
      * @param start start offset
      * @param end   end offset
-     * @return an log entry
+     * @return a log entry
      */
     @Override
     public Log getLog(long start, long end) {
@@ -132,16 +120,17 @@ public class SyncLogFile implements LogOperation {
             fileOperator.readBytes(start, byteBuffer, readLength);
             // Convert a byte array to {@link Log}
             // index[0-3]
-            int index = Bits.getInt(byteBuffer);
+            int index = byteBuffer.getInt();
             // term[4-7]
-            int term = Bits.getInt(byteBuffer);
+            int term = byteBuffer.getInt();
             // type[8,11]
-            int type = Bits.getInt(byteBuffer);
-            // commandLength[12,15]
+            int type = byteBuffer.getInt();
+            // contentLength[12,15]
             // cmd[16,content.length]
-            int cmdLength = Bits.getInt(byteBuffer);
+            int contentLength = byteBuffer.getInt();
             byte[] cmd = null;
-            if (cmdLength > 0) {
+            if (contentLength > 0) {
+                int cmdLength = byteBuffer.getInt();
                 cmd = new byte[cmdLength];
                 byteBuffer.get(cmd, 0, cmdLength);
             }
@@ -159,13 +148,13 @@ public class SyncLogFile implements LogOperation {
             fileOperator.readBytes(start, byteBuffer, size);
             int offset = 0;
             while (offset < size) {
-                int index = Bits.getInt(byteBuffer);
-                int term = Bits.getInt(byteBuffer);
-                int type = Bits.getInt(byteBuffer);
-                int contentLength = Bits.getInt(byteBuffer);
-                int cmdLength = Bits.getInt(byteBuffer);
+                int index = byteBuffer.getInt();
+                int term = byteBuffer.getInt();
+                int type = byteBuffer.getInt();
+                int contentLength = byteBuffer.getInt();
                 byte[] cmd = null;
-                if (cmdLength > 0) {
+                if (contentLength > 0) {
+                    int cmdLength = byteBuffer.getInt();
                     cmd = new byte[cmdLength];
                     byteBuffer.get(cmd, 0, cmdLength);
                 }

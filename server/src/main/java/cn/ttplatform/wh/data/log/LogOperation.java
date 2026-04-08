@@ -18,6 +18,7 @@ public interface LogOperation {
      * Append a log to file
      * 将日志追加到文件，日志长度对齐到4的倍数，因此内存布局将会是这样
      * index｜term｜type｜contentLength｜commandLength｜command｜padding（必要时填充）
+     *
      * @param log log to append
      * @return next offset
      */
@@ -25,14 +26,14 @@ public interface LogOperation {
 
     long[] append(List<Log> logs);
 
-    void append(ByteBuffer byteBuffer,int length);
+    void append(ByteBuffer byteBuffer, int length);
 
     /**
      * read a byte array from file start to end, then transfer to LogEntry
      *
      * @param start start offset
      * @param end   end offset
-     * @return an log entry
+     * @return a log entry
      */
     Log getLog(long start, long end);
 
@@ -51,4 +52,15 @@ public interface LogOperation {
     long size();
 
     boolean isEmpty();
+
+    default int calContentLength(byte[] command) {
+        int contentLength = 0;
+        if (command != null) {
+            contentLength = command.length + 4;
+            if (contentLength % 4 != 0) {
+                contentLength = 4 * (contentLength / 4 + 1);
+            }
+        }
+        return contentLength;
+    }
 }

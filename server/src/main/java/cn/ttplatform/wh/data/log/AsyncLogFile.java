@@ -41,13 +41,7 @@ public class AsyncLogFile implements LogOperation {
         fileOperator.appendInt(offset, log.getType());
         offset += 4;
         byte[] command = log.getCommand();
-        int contentLength = 0;
-        if (command != null) {
-            contentLength = command.length + 4;
-            if (contentLength % 4 != 0) {
-                contentLength = 4 * (contentLength / 4 + 1);
-            }
-        }
+        int contentLength = calContentLength(command);
         fileOperator.appendInt(offset, contentLength);
         offset += 4;
         if (command != null) {
@@ -92,7 +86,6 @@ public class AsyncLogFile implements LogOperation {
             int cmdLength = fileOperator.getInt(start);
             cmd = new byte[cmdLength];
             fileOperator.get(start + 4, cmd);
-
         }
         return LogFactory.createEntry(type, term, index, cmd);
     }

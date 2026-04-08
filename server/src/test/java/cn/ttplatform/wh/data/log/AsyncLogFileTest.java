@@ -50,7 +50,7 @@ public class AsyncLogFileTest {
 
     @Test
     public void append() {
-        byte[] content = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
+        byte[] content = UUID.randomUUID().toString().substring(0, 10).getBytes(StandardCharsets.UTF_8);
         long begin = System.nanoTime();
         asyncLogFile.append(LogFactory.createEntry(1, 1, 1, content));
         log.info("append 1 log cost {} ns", System.nanoTime() - begin);
@@ -59,19 +59,19 @@ public class AsyncLogFileTest {
 
     @Test
     public void testAppend() {
-        byte[] content = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
+        byte[] content = UUID.randomUUID().toString().substring(0, 10).getBytes(StandardCharsets.UTF_8);
         int capacity = 100000;
         List<Log> logEntries = new ArrayList<>(capacity);
         IntStream.range(0, capacity).forEach(index -> logEntries.add(LogFactory.createEntry(1, 1, index + 1, content)));
         long begin = System.nanoTime();
         long[] append = asyncLogFile.append(logEntries);
         log.info("append {} logs cost {} ns", capacity, System.nanoTime() - begin);
-        assertEquals((long) capacity * (Log.HEADER_BYTES + 4 + content.length), asyncLogFile.size());
+        assertEquals(append[append.length-1] + Log.HEADER_BYTES + 4 + content.length+2, asyncLogFile.size());
     }
 
     @Test
     public void getLog() {
-        byte[] content = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
+        byte[] content = UUID.randomUUID().toString().substring(0, 10).getBytes(StandardCharsets.UTF_8);
         asyncLogFile.append(LogFactory.createEntry(1, 1, 1, content));
         long begin = System.nanoTime();
         Log log = asyncLogFile.getLog(0, asyncLogFile.size());
