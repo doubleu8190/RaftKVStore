@@ -46,19 +46,14 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         Role role = context.getNode().getRole();
         int currentTerm = role.getTerm();
         if (term < currentTerm) {
+            log.info("receive append entries message with term {}, current term is {}, ignore", term, currentTerm);
             return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), false);
         }
         if (role.getType() == RoleType.LEADER && term == currentTerm) {
             log.warn("receive append entries message from another leader {}, step down to follower", message.getSourceId());
-            return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), false);
         }
-        return new AppendLogEntriesResultMessage(term, message.getLastIndex(), appendEntries(message));
-    }
-
-    private boolean appendEntries(AppendLogEntriesMessage message) {
         Node node = context.getNode();
         String newLeaderId = message.getSourceId();
-        int term = message.getTerm();
         // 需要记录下当前的voteTo，避免因为网络分区的情况下给其他leader投票，出现重复投票的情况
         String voteTo = null;
         if (node.getTerm() == term) {
@@ -74,7 +69,7 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         int preLogIndex = message.getPreLogIndex();
         boolean checkIndexAndTermIfMatched = dataManager.checkIndexAndTermIfMatched(preLogIndex, message.getPreLogTerm());
         if (checkIndexAndTermIfMatched && !message.isMatchComplete()) {
-            return true;
+            return new AppendLogEntriesResultMessage(term, message.getLastIndex(), true);
         }
         if (checkIndexAndTermIfMatched) {
             log.debug("checkIndexAndTerm Matched");
@@ -85,9 +80,9 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
                 context.getDataManager().advanceCommitIndex(newCommitIndex);
                 context.advanceLastApplied(message.getLeaderCommitIndex());
             }
-            return true;
+            return new AppendLogEntriesResultMessage(term, message.getLastIndex(), true);
         }
-        return false;
+        return new AppendLogEntriesResultMessage(term, message.getLastIndex(), false);
     }
 
 }

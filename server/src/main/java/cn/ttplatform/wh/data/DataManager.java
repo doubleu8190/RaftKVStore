@@ -277,21 +277,29 @@ public class DataManager {
         int lastIncludeIndex = snapshot.getLastIncludeIndex();
         int lastIncludeTerm = snapshot.getLastIncludeTerm();
         int endpointNextIndex = endpoint.getNextIndex();
+        boolean matchComplete = endpoint.isMatchComplete();
         if (endpointNextIndex <= lastIncludeIndex) {
+            logger.debug("endpointNextIndex[{}] <= lastIncludeIndex[{}], failed to create append entries message", endpointNextIndex, lastIncludeIndex);
             return null;
         }
         AppendLogEntriesMessage message = AppendLogEntriesMessage.builder()
                 .leaderCommitIndex(commitIndex)
                 .term(term)
-                .matchComplete(endpoint.isMatchComplete())
+                .matchComplete(matchComplete)
                 .build();
-        if (endpoint.isMatchComplete()) {
+        if (matchComplete) {
+            // 只有在matchComplete为true时，才需要发送logs。因为follower的next index还没有匹配上的时候，发送log只会浪费leader的带宽
+            // 而不会对follower有帮助。
             message.setLogs(range(endpointNextIndex, endpointNextIndex + size));
         }
         int preIndex = lastIncludeIndex;
         int preTerm = lastIncludeTerm;
         if (endpointNextIndex - 1 > lastIncludeIndex) {
             Log logEntry = getLog(endpointNextIndex - 1);
+            if (logEntry == null) {
+                logger.debug("not found a log for index[{}], failed to create append entries message", endpointNextIndex - 1);
+                return null;
+            }
             preIndex = logEntry.getIndex();
             preTerm = logEntry.getTerm();
         }

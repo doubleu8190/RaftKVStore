@@ -115,7 +115,9 @@ public class Cluster {
     }
 
     public void exchangeConfig() {
+        // 能进入到这个方法里面的时候，代表需要用newConfigMap替换endpointMap了
         endpointMap.clear();
+        // 如果当前节点在newConfigMap中，那么就用newConfigMap替换endpointMap，否则代表当前节点是要下线的节点，那就需要清空endpointMap了
         if (inNewConfig(selfId)) {
             endpointMap.putAll(newConfigMap);
         }

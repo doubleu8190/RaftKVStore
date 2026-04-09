@@ -72,6 +72,7 @@ import cn.ttplatform.wh.support.Pool;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.protostuff.LinkedBuffer;
+
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -89,6 +90,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -285,7 +287,6 @@ public class GlobalContext {
     }
 
     public void doLogReplication(Endpoint endpoint, int currentTerm) {
-
         Message message = dataManager.createAppendLogEntriesMessage(currentTerm, endpoint, properties.getMaxTransferLogs());
         if (message == null) {
             // start snapshot replication
@@ -557,6 +558,8 @@ public class GlobalContext {
         }
         String selfId = node.getSelfId();
         if (!cluster.inNewConfig(selfId)) {
+            // 如果当前节点不在newConfigMap中，那么代表当前节点是要下线的节点，那就需要将当前节点转换为没有leader的孤儿follower
+            logger.info("node {} is ready to offline", selfId);
             node.changeToFollower(node.getTerm(), null, null, 0, 0, 0L);
         }
         cluster.exchangeConfig();
