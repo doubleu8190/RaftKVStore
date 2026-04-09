@@ -136,29 +136,29 @@ public class GlobalContext {
         if (properties.isUseDirectByteBuffer()) {
             logger.debug("use DirectBufferAllocator");
             this.byteBufferPool = new DirectByteBufferPool(properties.getByteBufferPoolSize(),
-                properties.getBlockSize(), properties.getByteBufferSizeLimit());
+                    properties.getBlockSize(), properties.getByteBufferSizeLimit());
         } else {
             logger.debug("use BufferAllocator");
             this.byteBufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
-                properties.getBlockSize(), properties.getByteBufferSizeLimit());
+                    properties.getBlockSize(), properties.getByteBufferSizeLimit());
         }
         this.distributor = buildDistributor();
         this.serializerRegistry = buildSerializerRegistry();
         this.executor = new ThreadPoolExecutor(
-            1,
-            1,
-            0L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(),
-            new NamedThreadFactory("core-"));
+                1,
+                1,
+                0L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(),
+                new NamedThreadFactory("core-"));
         this.subTaskExecutor = new ThreadPoolExecutor(
-            0,
-            1,
-            30L,
-            TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2),
-            new NamedThreadFactory("subTask-"),
-            (r, e) -> logger.error("There is currently an executing task, reject this operation."));
+                0,
+                1,
+                30L,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(2),
+                new NamedThreadFactory("subTask-"),
+                (r, e) -> logger.error("There is currently an executing task, reject this operation."));
         this.boss = new NioEventLoopGroup(properties.getBossThreads(), new NamedThreadFactory("boss-"));
         this.worker = new NioEventLoopGroup(properties.getWorkerThreads(), new NamedThreadFactory("worker-"));
         this.stateMachine = new StateMachine(this);
@@ -241,9 +241,9 @@ public class GlobalContext {
                 int newCounts = cluster.inNewConfig(selfId) ? 1 : 0;
                 node.changeToFollower(currentTerm, null, null, oldCounts, newCounts, 0L);
                 PreVoteMessage preVoteMessage = PreVoteMessage.builder()
-                    .lastLogTerm(dataManager.getTermOfLastLog())
-                    .lastLogIndex(dataManager.getIndexOfLastLog())
-                    .build();
+                        .lastLogTerm(dataManager.getTermOfLastLog())
+                        .lastLogIndex(dataManager.getIndexOfLastLog())
+                        .build();
                 sendMessageToOthers(preVoteMessage);
             }
         });
@@ -254,10 +254,10 @@ public class GlobalContext {
         String selfId = node.getSelfId();
         node.changeToCandidate(term, cluster.inOldConfig(selfId) ? 1 : 0, cluster.inOldConfig(selfId) ? 1 : 0);
         RequestVoteMessage requestVoteMessage = RequestVoteMessage.builder()
-            .lastLogIndex(dataManager.getIndexOfLastLog())
-            .lastLogTerm(dataManager.getTermOfLastLog())
-            .term(term)
-            .build();
+                .lastLogIndex(dataManager.getIndexOfLastLog())
+                .lastLogTerm(dataManager.getTermOfLastLog())
+                .term(term)
+                .build();
         sendMessageToOthers(requestVoteMessage);
     }
 
@@ -278,7 +278,7 @@ public class GlobalContext {
             // returned in time, causing the master to resend the last message because it does not receive a reply. If
             // the slave does not handle it, an unknown error will occur.
             if (!endpoint.isReplicating() || System.currentTimeMillis() - endpoint.getLastHeartBeat() >= properties
-                .getMinElectionTimeout()) {
+                    .getMinElectionTimeout()) {
                 doLogReplication(endpoint, currentTerm);
             }
         });
@@ -290,7 +290,7 @@ public class GlobalContext {
         if (message == null) {
             // start snapshot replication
             message = dataManager
-                .createInstallSnapshotMessage(currentTerm, endpoint.getSnapshotOffset(), properties.getMaxTransferSize());
+                    .createInstallSnapshotMessage(currentTerm, endpoint.getSnapshotOffset(), properties.getMaxTransferSize());
         }
         sendMessage(message, endpoint);
         endpoint.setReplicating(true);
@@ -359,6 +359,37 @@ public class GlobalContext {
         }
     }
 
+
+    public boolean canAdvanceCommitIndex(int newCommitIndex, int term) {
+
+        if (newCommitIndex <= dataManager.getCommitIndex()) {
+            logger.debug("newCommitIndex[{}]<=commitIndex[{}], can not advance commitIndex", newCommitIndex, dataManager.getCommitIndex());
+            return false;
+        }
+        Log log = dataManager.getLog(newCommitIndex);
+        if (log == null) {
+            logger.debug("not found a log for index[{}].", newCommitIndex);
+            return false;
+        }
+        /*
+            Raft 有一条强约束：
+            1. Leader 不能主动提交任何不属于自己当前任期的日志条目。
+            只能提交当前 Term 自己产生的日志。
+            2. 但往期日志会被 “顺带提交”
+            当 Leader 提交一条当前任期的日志时，
+            Raft 会根据日志匹配特性，把这条日志之前所有已经复制到多数节点的旧任期日志，一并认定为 committed。
+            3. 为什么要这么设计？
+            为了保证 Leader Completeness 特性（Leader 完整性）：
+            如果允许直接提交旧 Term 日志，可能出现旧日志被提交后又被覆盖的情况；
+            只有通过当前 Term 日志 “带提交”，才能保证已提交的日志永远不会丢失、不会被回滚。
+         */
+        if (node.isLeader() && log.getTerm() != term) {
+            logger.debug("Log[{}] is not term[{}], unmatched.", log, term);
+            return false;
+        }
+        return true;
+    }
+
     public void applySnapshot(int lastIncludeIndex) {
         ByteBuffer byteBuffer = dataManager.getSnapshotData();
         stateMachine.applySnapshotData(byteBuffer, lastIncludeIndex);
@@ -396,7 +427,7 @@ public class GlobalContext {
         Phase phase = currentPhase();
         if (phase == Phase.OLD_NEW) {
             int oldConfigCommitIndex =
-                cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1 : cluster.getNewCommitIndexFromOldConfig();
+                    cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1 : cluster.getNewCommitIndexFromOldConfig();
             int newConfigCommitIndex = cluster.getNewCommitIndexFromNewConfig();
             logger.debug("oldConfigCommitIndex is {}.", oldConfigCommitIndex);
             logger.debug("newConfigCommitIndex is {}.", newConfigCommitIndex);
@@ -408,7 +439,7 @@ public class GlobalContext {
             return newConfigCommitIndex;
         }
         int oldConfigCommitIndex =
-            cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1 : cluster.getNewCommitIndexFromOldConfig();
+                cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1 : cluster.getNewCommitIndexFromOldConfig();
         logger.debug("oldConfigCommitIndex is {}.", oldConfigCommitIndex);
         return oldConfigCommitIndex;
     }
@@ -427,7 +458,9 @@ public class GlobalContext {
             throw new UnsupportedOperationException(String.format(ErrorMessage.NOT_SYNCING_PHASE, phase));
         }
         boolean res = cluster.inNewConfig(nodeId) && !cluster.inOldConfig(nodeId);
-        logger.info("{} is syncing node", nodeId);
+        if (res) {
+            logger.info("{} is syncing node", nodeId);
+        }
         return res;
     }
 
@@ -466,9 +499,9 @@ public class GlobalContext {
         cluster.getAllEndpointExceptSelf().parallelStream().forEach(endpoint -> {
             if (cluster.inNewConfig(endpoint.getNodeId())) {
                 SyncingCommand syncingCommand = SyncingCommand.builder().id(UUID.randomUUID().toString())
-                    .leaderMetaData(cluster.find(node.getSelfId()).getMetaData())
-                    .followerMetaData(endpoint.getMetaData())
-                    .term(node.getTerm()).build();
+                        .leaderMetaData(cluster.find(node.getSelfId()).getMetaData())
+                        .followerMetaData(endpoint.getMetaData())
+                        .term(node.getTerm()).build();
                 connector.send(syncingCommand, endpoint.getMetaData());
             }
         });
@@ -540,7 +573,7 @@ public class GlobalContext {
         NewConfig newConfig = cluster.createNewConfig(config);
         Map<String, Endpoint> newConfigMap = new HashMap<>();
         newConfig.getNewConfigs()
-            .forEach(endpointMetaData -> newConfigMap.put(endpointMetaData.getNodeId(), new Endpoint(endpointMetaData)));
+                .forEach(endpointMetaData -> newConfigMap.put(endpointMetaData.getNodeId(), new Endpoint(endpointMetaData)));
         cluster.setNewConfigMap(newConfigMap);
         logger.debug("apply new config, newConfigMap is {}", newConfigMap);
         enterNewPhase();
@@ -601,7 +634,7 @@ public class GlobalContext {
             String requestId = setCmd.getId();
             if (requestId != null) {
                 ChannelFuture channelFuture = channelPool
-                    .reply(requestId, SetResultCommand.builder().id(requestId).result(true).build());
+                        .reply(requestId, SetResultCommand.builder().id(requestId).result(true).build());
                 if (channelFuture != null) {
                     channelFuture.addListener(future -> {
                         if (future.isSuccess()) {
@@ -615,9 +648,9 @@ public class GlobalContext {
 
     private void replyGetResult(int index) {
         Optional.ofNullable(pendingGetCommandMap.remove(index))
-            .orElse(Collections.emptyList())
-            .forEach(cmd -> channelPool
-                .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build()));
+                .orElse(Collections.emptyList())
+                .forEach(cmd -> channelPool
+                        .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build()));
     }
 
     public void replyGetResult(GetCommand cmd) {
@@ -627,11 +660,11 @@ public class GlobalContext {
     public void replyGetClusterInfoResult(String requestId) {
         RunMode mode = node.getMode();
         GetClusterInfoResultCommand respCommand = GetClusterInfoResultCommand.builder()
-            .id(requestId)
-            .leader(node.getSelfId())
-            .mode(mode.toString())
-            .size(stateMachine.getPairs())
-            .build();
+                .id(requestId)
+                .leader(node.getSelfId())
+                .mode(mode.toString())
+                .size(stateMachine.getPairs())
+                .build();
         if (mode == RunMode.CLUSTER) {
             respCommand.setPhase(cluster.getPhase().toString());
             respCommand.setNewConfig(cluster.getNewConfigStr());
@@ -646,7 +679,7 @@ public class GlobalContext {
             getCommands.add(cmd);
         } else {
             channelPool
-                .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build());
+                    .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build());
         }
     }
 

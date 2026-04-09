@@ -70,7 +70,8 @@ public class Node {
         int term = nodeState.getCurrentTerm() + 1;
         this.role = Leader.builder().term(term).build();
         int index = context.pendingLog(Log.NO_OP_TYPE, new byte[0]);
-        if (context.getDataManager().advanceCommitIndex(index, term)) {
+        if (context.canAdvanceCommitIndex(index, term)) {
+            context.getDataManager().advanceCommitIndex(index);
             context.advanceLastApplied(index);
         }
         this.server.listen();

@@ -23,7 +23,8 @@ public class SetCommandHandler extends AbstractDistributableHandler {
         int currentTerm = context.getNode().getTerm();
         int index = context.pendingLog(Log.SET, context.getKvEntrySerializer().serialize(setCommand.getKeyValuePair()));
         context.addPendingCommand(index, setCommand);
-        if (context.getDataManager().advanceCommitIndex(index, currentTerm)) {
+        if (context.canAdvanceCommitIndex(index,currentTerm)) {
+            context.getDataManager().advanceCommitIndex(index);
             context.advanceLastApplied(index);
         }
     }

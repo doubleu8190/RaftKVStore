@@ -60,15 +60,17 @@ public class DataManager {
     private final LogFileMetadataRegion generatingLogFileMetadataRegion;
 
     private Snapshot snapshot;
+    @Getter
     private final SnapshotFileMetadataRegion snapshotFileMetadataRegion;
 
     private final SnapshotBuilder snapshotBuilder;
+    @Getter
     private final SnapshotFileMetadataRegion generatingSnapshotFileMetadataRegion;
 
     private LogIndexOperation logIndexOperation;
     private final LogIndexFileMetadataRegion logIndexFileMetadataRegion;
     private final LogIndexFileMetadataRegion generatingLogIndexFileMetadataRegion;
-
+    @Getter
     private int commitIndex;
     @Getter
     private int nextIndex;
@@ -98,11 +100,11 @@ public class DataManager {
         if (properties.isSynLogFlush()) {
             this.logOperation = new SyncLogFile(latestLogFile, byteBufferPool, logFileMetadataRegion);
             this.logIndexOperation = new SyncLogIndexFile(latestLogIndexFile, logIndexFileMetadataRegion, byteBufferPool,
-                snapshot.getLastIncludeIndex());
+                    snapshot.getLastIncludeIndex());
         } else {
             this.logOperation = new AsyncLogFile(latestLogFile, properties, fixedByteBufferPool, logFileMetadataRegion);
             this.logIndexOperation = new AsyncLogIndexFile(latestLogIndexFile, properties, fixedByteBufferPool,
-                snapshot.getLastIncludeIndex(), logIndexFileMetadataRegion);
+                    snapshot.getLastIncludeIndex(), logIndexFileMetadataRegion);
         }
 
         if (!logOperation.isEmpty() && logIndexOperation.isEmpty()) {
@@ -110,7 +112,7 @@ public class DataManager {
             rebuildIndexFile();
         }
         this.snapshotBuilder = new SnapshotBuilder(base, byteBufferPool, snapshotFileMetadataRegion,
-            generatingSnapshotFileMetadataRegion);
+                generatingSnapshotFileMetadataRegion);
         this.commitIndex = logIndexOperation.getMaxIndex();
         this.nextIndex = commitIndex + 1;
     }
@@ -158,14 +160,6 @@ public class DataManager {
         }
     }
 
-    public SnapshotFileMetadataRegion getSnapshotFileMetadataRegion() {
-        return snapshotFileMetadataRegion;
-    }
-
-    public SnapshotFileMetadataRegion getGeneratingSnapshotFileMetadataRegion() {
-        return generatingSnapshotFileMetadataRegion;
-    }
-
     public int getLastIncludeIndex() {
         return snapshot.getLastIncludeIndex();
     }
@@ -190,8 +184,8 @@ public class DataManager {
             return log.getTerm();
         }
         return Optional.ofNullable(logIndexOperation.getLogMetaData(index))
-            .orElseThrow(() -> new IncorrectLogIndexNumberException("not found log meta data for index[" + index + "]."))
-            .getTerm();
+                .orElseThrow(() -> new IncorrectLogIndexNumberException("not found log meta data for index[" + index + "]."))
+                .getTerm();
     }
 
     /**
@@ -212,7 +206,7 @@ public class DataManager {
         if (!pending.isEmpty() && log.getIndex() != pending.lastEntry().getKey() + 1) {
             // maybe received an expired message
             throw new IncorrectLogIndexNumberException(
-                "The index[" + log.getIndex() + "] number of the log is incorrect ");
+                    "The index[" + log.getIndex() + "] number of the log is incorrect ");
         }
         pending.put(log.getIndex(), log);
         nextIndex++;
@@ -233,7 +227,7 @@ public class DataManager {
                 if (!pending.isEmpty() && log.getIndex() != pending.lastEntry().getKey() + 1) {
                     // maybe received an expired message
                     throw new IncorrectLogIndexNumberException(
-                        "The index[" + log.getIndex() + "] number of the log is incorrect.");
+                            "The index[" + log.getIndex() + "] number of the log is incorrect.");
                 }
                 pending.put(log.getIndex(), log);
             }
@@ -287,10 +281,10 @@ public class DataManager {
             return null;
         }
         AppendLogEntriesMessage message = AppendLogEntriesMessage.builder()
-            .leaderCommitIndex(commitIndex)
-            .term(term)
-            .matchComplete(endpoint.isMatchComplete())
-            .build();
+                .leaderCommitIndex(commitIndex)
+                .term(term)
+                .matchComplete(endpoint.isMatchComplete())
+                .build();
         if (endpoint.isMatchComplete()) {
             message.setLogs(range(endpointNextIndex, endpointNextIndex + size));
         }
@@ -308,31 +302,20 @@ public class DataManager {
 
     public Message createInstallSnapshotMessage(int term, long offset, int size) {
         return InstallSnapshotMessage.builder().term(term)
-            .offset(offset)
-            .lastIncludeIndex(snapshot.getLastIncludeIndex())
-            .lastIncludeTerm(snapshot.getLastIncludeTerm())
-            .chunk(snapshot.read(offset, size))
-            .done(offset + size >= snapshot.size())
-            .build();
+                .offset(offset)
+                .lastIncludeIndex(snapshot.getLastIncludeIndex())
+                .lastIncludeTerm(snapshot.getLastIncludeTerm())
+                .chunk(snapshot.read(offset, size))
+                .done(offset + size >= snapshot.size())
+                .build();
     }
 
     /**
      * All logs with index less than commitIndex need to be committed.
      *
      * @param newCommitIndex commitIndex
-     * @param term           current term
-     * @return committed res
      */
-    public boolean advanceCommitIndex(int newCommitIndex, int term) {
-        if (newCommitIndex <= commitIndex) {
-            logger.debug("newCommitIndex[{}]<=commitIndex[{}], can not advance commitIndex", newCommitIndex, commitIndex);
-            return false;
-        }
-        Log log = getLog(newCommitIndex);
-        if (log == null || log.getTerm() < term) {
-            logger.debug("find log by newCommitIndex[{}] is {}, unmatched.", newCommitIndex, log);
-            return false;
-        }
+    public void advanceCommitIndex(int newCommitIndex) {
         int size = newCommitIndex - logIndexOperation.getMaxIndex();
         List<Log> committedLogs = new ArrayList<>(size);
         while (!pending.isEmpty() && pending.firstEntry().getKey() <= newCommitIndex) {
@@ -346,11 +329,7 @@ public class DataManager {
             logIndexOperation.append(committedLogs, offsets);
         }
         commitIndex = newCommitIndex;
-        if (logger.isDebugEnabled()) {
-            logger.debug("append {} logs", committedLogs.size());
-            logger.debug("commit {} success.", commitIndex);
-        }
-        return true;
+        logger.info("append {} logs, commitIndex {}", newCommitIndex - committedLogs.size(), commitIndex);
     }
 
     /**
@@ -422,10 +401,10 @@ public class DataManager {
                 subTaskExecutor.execute(logIndexOperation::close);
                 if (properties.isSynLogFlush()) {
                     logIndexOperation = new SyncLogIndexFile(newLogIndexFile, generatingLogIndexFileMetadataRegion,
-                        byteBufferPool, snapshot.getLastIncludeIndex());
+                            byteBufferPool, snapshot.getLastIncludeIndex());
                 } else {
                     logIndexOperation = new AsyncLogIndexFile(newLogIndexFile, properties, fixedByteBufferPool,
-                        snapshot.getLastIncludeIndex(), generatingLogIndexFileMetadataRegion);
+                            snapshot.getLastIncludeIndex(), generatingLogIndexFileMetadataRegion);
                 }
                 logIndexOperation.exchangeLogFileMetadataRegion(logIndexFileMetadataRegion);
                 if (!logOperation.isEmpty() && logIndexOperation.isEmpty()) {

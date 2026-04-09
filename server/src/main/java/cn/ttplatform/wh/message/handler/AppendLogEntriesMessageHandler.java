@@ -7,6 +7,7 @@ import cn.ttplatform.wh.data.DataManager;
 import cn.ttplatform.wh.exception.IncorrectLogIndexNumberException;
 import cn.ttplatform.wh.message.AppendLogEntriesMessage;
 import cn.ttplatform.wh.message.AppendLogEntriesResultMessage;
+import cn.ttplatform.wh.role.Follower;
 import cn.ttplatform.wh.role.Role;
 import cn.ttplatform.wh.role.RoleType;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
@@ -47,27 +48,30 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         if (term < currentTerm) {
             return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), false);
         }
-        if (term > currentTerm) {
-            return new AppendLogEntriesResultMessage(term, message.getLastIndex(), appendEntries(message));
-        }
-        if (role.getType() == RoleType.LEADER) {
-            log.warn("receive append entries message from another leader {}, ignore", message.getSourceId());
+        if (role.getType() == RoleType.LEADER && term == currentTerm) {
+            log.warn("receive append entries message from another leader {}, step down to follower", message.getSourceId());
             return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), false);
         }
-        return new AppendLogEntriesResultMessage(currentTerm, message.getLastIndex(), appendEntries(message));
+        return new AppendLogEntriesResultMessage(term, message.getLastIndex(), appendEntries(message));
     }
 
     private boolean appendEntries(AppendLogEntriesMessage message) {
         Node node = context.getNode();
-//        String currentLeaderId = node.isFollower() ? ((Follower) node.getRole()).getLeaderId() : "";
         String newLeaderId = message.getSourceId();
-        node.changeToFollower(message.getTerm(), newLeaderId, null, 0, 0, System.currentTimeMillis());
+        int term = message.getTerm();
+        // 需要记录下当前的voteTo，避免因为网络分区的情况下给其他leader投票，出现重复投票的情况
+        String voteTo = null;
+        if (node.getTerm() == term) {
+            if (node.isFollower()) {
+                voteTo = ((Follower) node.getRole()).getVoteTo();
+            } else if (node.isCandidate()) {
+                voteTo = node.getSelfId();
+            }
+        }
+        node.changeToFollower(term, newLeaderId, voteTo, 0, 0, System.currentTimeMillis());
+
         DataManager dataManager = context.getDataManager();
         int preLogIndex = message.getPreLogIndex();
-//        if (Objects.equals(currentLeaderId, newLeaderId) && message.isMatchComplete() && preLogIndex < dataManager.getNextIndex() - 1) {
-//            throw new IncorrectLogIndexNumberException("preLogIndex < log.getNextIndex(), maybe a expired message.");
-//        }
-
         boolean checkIndexAndTermIfMatched = dataManager.checkIndexAndTermIfMatched(preLogIndex, message.getPreLogTerm());
         if (checkIndexAndTermIfMatched && !message.isMatchComplete()) {
             return true;
@@ -75,7 +79,10 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
         if (checkIndexAndTermIfMatched) {
             log.debug("checkIndexAndTerm Matched");
             dataManager.pendingLogs(preLogIndex, message.getLogs());
-            if (dataManager.advanceCommitIndex(message.getLeaderCommitIndex(), message.getTerm())) {
+            int indexOfLastNewEntry = message.getLastIndex();
+            int newCommitIndex = Math.min(indexOfLastNewEntry, message.getLeaderCommitIndex());
+            if (context.canAdvanceCommitIndex(newCommitIndex, term)){
+                context.getDataManager().advanceCommitIndex(newCommitIndex);
                 context.advanceLastApplied(message.getLeaderCommitIndex());
             }
             return true;
