@@ -20,6 +20,7 @@ public class ClientProperties {
     private String masterId;
     private String host;
     private int port;
+    private short protocolMagicNumber;
 
     public ClientProperties(String path) {
         Properties properties = new Properties();
@@ -46,5 +47,6 @@ public class ClientProperties {
         masterId = properties.getProperty("nodeId");
         host = properties.getProperty("host", "127.0.0.1");
         port = Integer.parseInt(properties.getProperty("port", "8888"));
+        protocolMagicNumber = (short) Integer.parseInt(properties.getProperty("protocolMagicNumber", "5A5A"), 16);
     }
 }

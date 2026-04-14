@@ -72,8 +72,14 @@ public class Client {
 
     private final Bootstrap bootstrap;
     private final NioEventLoopGroup worker;
+    private final short protocolMagicNumber;
 
     public Client(Watcher watcher) {
+        this(watcher, (short) 0x5A5A);
+    }
+
+    public Client(Watcher watcher, short protocolMagicNumber) {
+        this.protocolMagicNumber = protocolMagicNumber;
         this.worker = new NioEventLoopGroup(1);
         Pool<LinkedBuffer> bufferPool = new FixedSizeLinkedBufferPool(3);
         DistributableSerializerRegistry factoryManager = new DistributableSerializerRegistry();
@@ -95,7 +101,7 @@ public class Client {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new DistributableCodec(factoryManager));
+                        pipeline.addLast(new DistributableCodec(factoryManager, protocolMagicNumber));
                         pipeline.addLast(new ClientDuplexChannelHandler(watcher));
                     }
                 });

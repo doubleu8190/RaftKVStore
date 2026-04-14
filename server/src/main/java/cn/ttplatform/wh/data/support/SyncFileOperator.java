@@ -2,7 +2,6 @@ package cn.ttplatform.wh.data.support;
 
 import cn.ttplatform.wh.exception.OperateFileException;
 import cn.ttplatform.wh.support.Pool;
-import com.sun.nio.file.ExtendedOpenOption;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -32,13 +31,13 @@ public class SyncFileOperator {
         }
     }
 
-    public void append(long position, byte[] bytes, int length) {
+    public int append(long position, byte[] bytes, int length) {
         ByteBuffer byteBuffer = bufferPool.allocate(bytes.length);
         byteBuffer.put(bytes, 0, length);
         byteBuffer.flip();
         byteBuffer.limit(byteBuffer.capacity());
         try {
-            fileChannel.write(byteBuffer, position);
+            return fileChannel.write(byteBuffer, position);
         } catch (IOException e) {
             throw new OperateFileException(String.format("failed to write %d bytes into file at position[%d].", length, position), e);
         } finally {

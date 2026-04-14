@@ -32,9 +32,9 @@ public class SyncingCommandHandler extends AbstractDistributableHandler {
         SyncingCommand cmd = (SyncingCommand) distributable;
         EndpointMetaData followerMetaData = cmd.getFollowerMetaData();
         String clusterInfo = cmd.getLeaderMetaData().toString() + " " + followerMetaData.toString();
-        context.setProperty("clusterInfo", clusterInfo);
-        context.setProperty("connectorHost", followerMetaData.getHost());
-        context.setProperty("connectorPort", followerMetaData.getConnectorPort());
+        context.getProperties().setClusterInfo(clusterInfo);
+        context.getProperties().setConnectorHost(followerMetaData.getHost());
+        context.getProperties().setConnectorPort(followerMetaData.getConnectorPort());
         context.enterClusterMode();
         context.getNode().changeToFollower(cmd.getTerm(), cmd.getLeaderMetaData().getNodeId(), null, 0, 0, 0);
     }

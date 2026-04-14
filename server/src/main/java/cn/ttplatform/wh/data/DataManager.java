@@ -1,6 +1,6 @@
 package cn.ttplatform.wh.data;
 
-import static cn.ttplatform.wh.data.FileConstant.METADATA_FILE_NAME;
+import static cn.ttplatform.wh.data.FileManager.METADATA_FILE_NAME;
 
 import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.config.ServerProperties;
@@ -21,6 +21,7 @@ import cn.ttplatform.wh.exception.IncorrectLogIndexNumberException;
 import cn.ttplatform.wh.group.Endpoint;
 import cn.ttplatform.wh.message.AppendLogEntriesMessage;
 import cn.ttplatform.wh.message.InstallSnapshotMessage;
+import cn.ttplatform.wh.scheduler.TaskExecutor;
 import cn.ttplatform.wh.support.FixedSizeDirectByteBufferPool;
 import cn.ttplatform.wh.support.Message;
 import cn.ttplatform.wh.support.Pool;
@@ -32,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.IntStream;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -84,19 +84,19 @@ public class DataManager {
 
         this.base = properties.getBase();
         File metaFile = new File(base, METADATA_FILE_NAME);
-        this.logFileMetadataRegion = FileConstant.getLogFileMetadataRegion(metaFile);
-        this.generatingLogFileMetadataRegion = FileConstant.getGeneratingLogFileMetadataRegion(metaFile);
-        this.snapshotFileMetadataRegion = FileConstant.getSnapshotFileMetadataRegion(metaFile);
-        this.generatingSnapshotFileMetadataRegion = FileConstant.getGeneratingSnapshotFileMetadataRegion(metaFile);
-        this.logIndexFileMetadataRegion = FileConstant.getLogIndexFileMetadataRegion(metaFile);
-        this.generatingLogIndexFileMetadataRegion = FileConstant.getGeneratingLogIndexFileMetadataRegion(metaFile);
+        this.logFileMetadataRegion = FileManager.getLogFileMetadataRegion(metaFile);
+        this.generatingLogFileMetadataRegion = FileManager.getGeneratingLogFileMetadataRegion(metaFile);
+        this.snapshotFileMetadataRegion = FileManager.getSnapshotFileMetadataRegion(metaFile);
+        this.generatingSnapshotFileMetadataRegion = FileManager.getGeneratingSnapshotFileMetadataRegion(metaFile);
+        this.logIndexFileMetadataRegion = FileManager.getLogIndexFileMetadataRegion(metaFile);
+        this.generatingLogIndexFileMetadataRegion = FileManager.getGeneratingLogIndexFileMetadataRegion(metaFile);
 
-        File latestSnapshotFile = FileConstant.getLatestSnapshotFile(base);
+        File latestSnapshotFile = FileManager.getLatestSnapshotFile(base);
         this.snapshot = new Snapshot(latestSnapshotFile, snapshotFileMetadataRegion, byteBufferPool);
 
         String path = latestSnapshotFile.getPath();
-        File latestLogFile = FileConstant.getMatchedLogFile(path);
-        File latestLogIndexFile = FileConstant.getMatchedLogIndexFile(path);
+        File latestLogFile = FileManager.getMatchedLogFile(path);
+        File latestLogIndexFile = FileManager.getMatchedLogIndexFile(path);
         if (properties.isSynLogFlush()) {
             this.logOperation = new SyncLogFile(latestLogFile, byteBufferPool, logFileMetadataRegion);
             this.logIndexOperation = new SyncLogIndexFile(latestLogIndexFile, logIndexFileMetadataRegion, byteBufferPool,
@@ -369,12 +369,15 @@ public class DataManager {
         if (offset == 0L) {
             snapshotBuilder.setBaseInfo(lastIncludeIndex, lastIncludeTerm, sourceId);
         }
+        // 计算期望的偏移量
         long expectedOffset = snapshotBuilder.getInstallOffset();
+        // 验证快照源是否一致
         if (!sourceId.equals(snapshotBuilder.getSnapshotSource())) {
             throw new IllegalArgumentException("the snapshotSource has changed, receive a message that offset!=0.");
         }
+        // 验证偏移量是否匹配
         if (offset != expectedOffset) {
-            throw new IllegalArgumentException(String.format("the offset[%d] is unmatched. expect %d", offset, expectedOffset));
+            throw new IllegalArgumentException(String.format("the offset[%d] of InstallSnapshotMessage is unmatched. expect %d", offset, expectedOffset));
         }
         snapshotBuilder.append(message.getChunk());
         if (message.isDone()) {
@@ -384,29 +387,63 @@ public class DataManager {
         return true;
     }
 
+/**
+ * 完成快照构建并更新相关文件结构
+ * <p>
+ * 此方法在后台线程中执行以下操作：
+ * 1. 完成快照构建过程
+ * 2. 创建新的日志文件和日志索引文件（以快照的最后索引和任期为基准）
+ * 3. 处理从旧日志文件到新日志文件的数据转移
+ * 4. 关闭旧的日志操作实例
+ * 5. 重建索引文件（如果需要）
+ * 6. 停止状态机的快照生成模式
+ *
+ * @param snapshotBuilder 快照构建器实例
+ * @param lastIncludeTerm 快照包含的最后日志条目的任期
+ * @param lastIncludeIndex 快照包含的最后日志条目的索引
+ */
     public void completeBuildingSnapshot(SnapshotBuilder snapshotBuilder, int lastIncludeTerm, int lastIncludeIndex) {
-        context.getExecutor().execute(() -> {
+        // 在后台线程中执行快照完成操作，避免阻塞主线程
+        context.getTaskExecutor().execute(() -> {
+            // 完成快照构建
             snapshotBuilder.complete();
-            snapshot = new Snapshot(snapshotBuilder.getFile(), snapshotFileMetadataRegion, byteBufferPool);
-            File newLogFile = FileConstant.newLogFile(base, lastIncludeIndex, lastIncludeTerm);
-            File newLogIndexFile = FileConstant.newLogIndexFile(base, lastIncludeIndex, lastIncludeTerm);
+            // 创建新的快照实例
+            snapshot = new Snapshot(snapshotBuilder.getSnapshotFile(), snapshotFileMetadataRegion, byteBufferPool);
+            
+            // 创建新的日志文件和日志索引文件，以快照的最后索引和任期为基准
+            File newLogFile = FileManager.newLogFile(base, lastIncludeIndex, lastIncludeTerm);
+            File newLogIndexFile = FileManager.newLogIndexFile(base, lastIncludeIndex, lastIncludeTerm);
+            
+            // 获取快照后第一条日志的偏移量
             long offset = logIndexOperation.getLogOffset(lastIncludeIndex + 1);
+            
             try {
+                // 保存旧的日志操作实例
                 LogOperation oldLogOperation = this.logOperation;
                 ServerProperties properties = context.getProperties();
+                
+                // 根据配置创建同步或异步日志文件操作实例
                 if (properties.isSynLogFlush()) {
                     logOperation = new SyncLogFile(newLogFile, byteBufferPool, generatingLogFileMetadataRegion);
                 } else {
                     logOperation = new AsyncLogFile(newLogFile, properties, fixedByteBufferPool, generatingLogFileMetadataRegion);
                 }
+                
+                // 如果存在快照后的数据，将其从旧日志文件转移到新日志文件
                 if (offset != -1L) {
-                    // means that lastIncludeIndex == lastLogIndex
+                    // 说明 lastIncludeIndex == lastLogIndex，需要转移数据
                     oldLogOperation.transferTo(offset, logOperation);
                 }
+                
+                // 交换日志文件元数据区域
                 logOperation.exchangeLogFileMetadataRegion(logFileMetadataRegion);
-                ThreadPoolExecutor subTaskExecutor = context.getSubTaskExecutor();
-                subTaskExecutor.execute(oldLogOperation::close);
-                subTaskExecutor.execute(logIndexOperation::close);
+                
+                // 在子任务线程池中关闭旧的日志和索引操作实例
+                TaskExecutor taskExecutor = context.getTaskExecutor();
+                taskExecutor.executeSubTask(oldLogOperation::close);
+                taskExecutor.executeSubTask(logIndexOperation::close);
+                
+                // 根据配置创建同步或异步日志索引文件操作实例
                 if (properties.isSynLogFlush()) {
                     logIndexOperation = new SyncLogIndexFile(newLogIndexFile, generatingLogIndexFileMetadataRegion,
                             byteBufferPool, snapshot.getLastIncludeIndex());
@@ -414,11 +451,16 @@ public class DataManager {
                     logIndexOperation = new AsyncLogIndexFile(newLogIndexFile, properties, fixedByteBufferPool,
                             snapshot.getLastIncludeIndex(), generatingLogIndexFileMetadataRegion);
                 }
+                
+                // 交换日志索引文件元数据区域
                 logIndexOperation.exchangeLogFileMetadataRegion(logIndexFileMetadataRegion);
+                
+                // 如果新的日志文件不为空但索引文件为空，重建索引文件
                 if (!logOperation.isEmpty() && logIndexOperation.isEmpty()) {
                     rebuildIndexFile();
                 }
             } finally {
+                // 无论操作是否成功，都停止状态机的快照生成模式
                 context.getStateMachine().stopGenerating();
             }
         });

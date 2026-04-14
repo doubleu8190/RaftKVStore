@@ -50,9 +50,10 @@ public class ClusterChangeCommandHandler extends AbstractDistributableHandler {
             Set<String> newConfigStr = cmd.getNewConfig();
             Set<EndpointMetaData> newConfig = new HashSet<>((int) (newConfigStr.size() / 0.75f) + 1);
             newConfigStr.forEach(metaData -> newConfig.add(new EndpointMetaData(metaData)));
+            // 如果本次更新没有新增节点，那么直接进入OLD_NEW阶段，否则进入SYNCING阶段
             if (context.updateNewConfig(newConfig)) {
                 // If there is no added node, go directly to the OLD_NEW phase
-                log.info("there is no added node");
+                log.info("there is no added node, prepare to enter OLD_NEW phase");
                 context.enterOldNewPhase();
             } else {
                 context.enterSyncingPhase();

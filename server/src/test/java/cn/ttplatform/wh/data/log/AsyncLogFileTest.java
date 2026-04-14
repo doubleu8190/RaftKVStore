@@ -1,7 +1,7 @@
 package cn.ttplatform.wh.data.log;
 
 import cn.ttplatform.wh.config.ServerProperties;
-import cn.ttplatform.wh.data.FileConstant;
+import cn.ttplatform.wh.data.FileManager;
 import cn.ttplatform.wh.data.index.LogIndex;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
 import cn.ttplatform.wh.support.HeapByteBufferPool;
@@ -38,8 +38,8 @@ public class AsyncLogFileTest {
                 properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("AsyncLogFile-", ".txt");
         File metaFile = File.createTempFile("AsyncLogMetaFile-", ".txt");
-        this.logFileMetadataRegion = FileConstant.getLogFileMetadataRegion(metaFile);
-        this.generatingLogFileMetadataRegion = FileConstant.getGeneratingLogFileMetadataRegion(metaFile);
+        this.logFileMetadataRegion = FileManager.getLogFileMetadataRegion(metaFile);
+        this.generatingLogFileMetadataRegion = FileManager.getGeneratingLogFileMetadataRegion(metaFile);
         this.asyncLogFile = new AsyncLogFile(file, properties, bufferPool, logFileMetadataRegion);
     }
 

@@ -171,6 +171,24 @@ public class ServerProperties {
      */
     private int queueCapacity;
 
+    /**
+     * The magic number for protocol identification. Used to quickly identify illegal requests
+     * and prevent malicious scanning or protocol misreporting.
+     * <p>
+     * Unit: 2-byte short integer (hexadecimal)
+     * Default value: 0x5A5A
+     */
+    private short protocolMagicNumber;
+
+    /**
+     * The capacity of the task executor queue. This queue is used by the core thread pool
+     * to buffer pending tasks before execution.
+     * <p>
+     * Unit: number of tasks
+     * Default value: 1
+     */
+    private int taskExecutorQueueCapacity;
+
     public ServerProperties() {
         Properties properties = new Properties();
         configure(properties);
@@ -246,6 +264,8 @@ public class ServerProperties {
         channelTrafficShapingHandlerReadLimit = Long.parseLong(properties.getProperty("channelTrafficShapingHandlerReadLimit", "1048576"));
         channelTrafficShapingHandlerWriteLimit = Long.parseLong(properties.getProperty("channelTrafficShapingHandlerWriteLimit", "1048576"));
         queueCapacity = Integer.parseInt(properties.getProperty("queueCapacity", "1000"));
+        protocolMagicNumber = (short) Integer.parseInt(properties.getProperty("protocolMagicNumber", "5A5A"), 16);
+        taskExecutorQueueCapacity = Integer.parseInt(properties.getProperty("taskExecutorQueueCapacity", "1024"));
     }
 
 }

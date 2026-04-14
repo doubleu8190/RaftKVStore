@@ -15,7 +15,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 
-import static cn.ttplatform.wh.data.FileConstant.*;
+import static cn.ttplatform.wh.data.FileManager.*;
 import static java.nio.file.StandardOpenOption.*;
 
 /**

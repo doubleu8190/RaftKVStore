@@ -58,8 +58,8 @@ import cn.ttplatform.wh.message.serializer.PreVoteResultMessageSerializer;
 import cn.ttplatform.wh.message.serializer.RequestVoteMessageSerializer;
 import cn.ttplatform.wh.message.serializer.RequestVoteResultMessageSerializer;
 import cn.ttplatform.wh.message.serializer.SyncingMessageSerializer;
-import cn.ttplatform.wh.scheduler.Scheduler;
-import cn.ttplatform.wh.scheduler.SingleThreadScheduler;
+import cn.ttplatform.wh.scheduler.DefaultTaskExecutor;
+import cn.ttplatform.wh.scheduler.TaskExecutor;
 import cn.ttplatform.wh.support.ChannelPool;
 import cn.ttplatform.wh.support.CommonDistributor;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
@@ -84,12 +84,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -116,16 +111,14 @@ public class GlobalContext {
     private final Pool<ByteBuffer> byteBufferPool;
     private final CommonDistributor distributor;
     private final DistributableSerializerRegistry serializerRegistry;
-    private final ThreadPoolExecutor subTaskExecutor;
-    private final ThreadPoolExecutor executor;
     private final NioEventLoopGroup boss;
     private final NioEventLoopGroup worker;
     private final StateMachine stateMachine;
     private final DataManager dataManager;
     private final KVEntrySerializer kvEntrySerializer;
     private final ChannelPool channelPool;
+    private final TaskExecutor taskExecutor;
     private Node node;
-    private Scheduler scheduler;
     private Cluster cluster;
     private Connector connector;
     private ClusterChangeCommand clusterChangeCommand;
@@ -146,21 +139,7 @@ public class GlobalContext {
         }
         this.distributor = buildDistributor();
         this.serializerRegistry = buildSerializerRegistry();
-        this.executor = new ThreadPoolExecutor(
-                1,
-                1,
-                0L,
-                TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(),
-                new NamedThreadFactory("core-"));
-        this.subTaskExecutor = new ThreadPoolExecutor(
-                0,
-                1,
-                30L,
-                TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(2),
-                new NamedThreadFactory("subTask-"),
-                (r, e) -> logger.error("There is currently an executing task, reject this operation."));
+        this.taskExecutor = new DefaultTaskExecutor(properties);
         this.boss = new NioEventLoopGroup(properties.getBossThreads(), new NamedThreadFactory("boss-"));
         this.worker = new NioEventLoopGroup(properties.getWorkerThreads(), new NamedThreadFactory("worker-"));
         this.stateMachine = new StateMachine(this);
@@ -175,7 +154,6 @@ public class GlobalContext {
             logger.info("enable cluster component...");
             this.connector = new Connector(this);
             this.connector.listen(new InetSocketAddress(properties.getConnectorHost(), properties.getConnectorPort()));
-            this.scheduler = new SingleThreadScheduler(properties, executor);
             this.cluster = new Cluster(this);
         }
     }
@@ -203,7 +181,6 @@ public class GlobalContext {
         return commonDistributor;
     }
 
-
     private DistributableSerializerRegistry buildSerializerRegistry() {
         DistributableSerializerRegistry registry = new DistributableSerializerRegistry();
         registry.register(new SetCommandSerializer(linkedBufferPool));
@@ -229,7 +206,7 @@ public class GlobalContext {
     }
 
     public ScheduledFuture<?> electionTimeoutTask() {
-        return scheduler.scheduleElectionTimeoutTask(() -> {
+        return taskExecutor.scheduleElectionTimeoutTask(() -> {
             if (node.isLeader()) {
                 logger.warn("current node[{}] role type is leader, ignore this process.", properties.getNodeId());
                 return;
@@ -265,7 +242,7 @@ public class GlobalContext {
 
     public ScheduledFuture<?> logReplicationTask(boolean newThreadExec) {
         if (newThreadExec) {
-            return scheduler.scheduleLogReplicationTask(this::doLogReplication);
+            return taskExecutor.scheduleLogReplicationTask(this::doLogReplication);
         }
         doLogReplication();
         return null;
@@ -274,10 +251,14 @@ public class GlobalContext {
     private void doLogReplication() {
         int currentTerm = node.getTerm();
         cluster.getAllEndpointExceptSelf().forEach(endpoint -> {
-            // If the log is not being transmitted, the heartbeat detection information will be sent every time
-            // the scheduled task is executed, otherwise the message will be sent only when a certain time has passed.
-            // Doing so will cause a problem that the results of the slave processing log snapshot messages may not be
-            // returned in time, causing the master to resend the last message because it does not receive a reply. If
+            // If the log is not being transmitted, the heartbeat detection information will
+            // be sent every time
+            // the scheduled task is executed, otherwise the message will be sent only when
+            // a certain time has passed.
+            // Doing so will cause a problem that the results of the slave processing log
+            // snapshot messages may not be
+            // returned in time, causing the master to resend the last message because it
+            // does not receive a reply. If
             // the slave does not handle it, an unknown error will occur.
             if (!endpoint.isReplicating() || System.currentTimeMillis() - endpoint.getLastHeartBeat() >= properties
                     .getMinElectionTimeout()) {
@@ -287,11 +268,13 @@ public class GlobalContext {
     }
 
     public void doLogReplication(Endpoint endpoint, int currentTerm) {
-        Message message = dataManager.createAppendLogEntriesMessage(currentTerm, endpoint, properties.getMaxTransferLogs());
+        Message message = dataManager.createAppendLogEntriesMessage(currentTerm, endpoint,
+                properties.getMaxTransferLogs());
         if (message == null) {
             // start snapshot replication
             message = dataManager
-                    .createInstallSnapshotMessage(currentTerm, endpoint.getSnapshotOffset(), properties.getMaxTransferSize());
+                    .createInstallSnapshotMessage(currentTerm, endpoint.getSnapshotOffset(),
+                            properties.getMaxTransferSize());
         }
         sendMessage(message, endpoint);
         endpoint.setReplicating(true);
@@ -309,17 +292,6 @@ public class GlobalContext {
     public void sendMessage(Message message, Endpoint endpoint) {
         message.setSourceId(node.getSelfId());
         connector.send(message, endpoint.getMetaData());
-    }
-
-    public void setProperty(String fieldName, Object value) {
-        Field field;
-        try {
-            field = properties.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(properties, value);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            logger.error("fail to set property[filed={}, value={}], error detail is {}.", fieldName, value, e.getStackTrace());
-        }
     }
 
     public Object getProperty(String fieldName) {
@@ -352,19 +324,20 @@ public class GlobalContext {
         if (dataManager.shouldGenerateSnapshot(properties.getSnapshotGenerateThreshold())) {
             boolean result = stateMachine.startGenerating();
             if (result) {
-                subTaskExecutor.execute(new GenerateSnapshotTask(this, stateMachine.getApplied()));
+                taskExecutor.executeSubTask(new GenerateSnapshotTask(this, stateMachine.getApplied()));
             } else {
-                // Perhaps the threshold for log snapshot generation should be appropriately increased
+                // Perhaps the threshold for log snapshot generation should be appropriately
+                // increased
                 logger.debug("There is currently an executing task, reject this operation.");
             }
         }
     }
 
-
     public boolean canAdvanceCommitIndex(int newCommitIndex, int term) {
 
         if (newCommitIndex <= dataManager.getCommitIndex()) {
-            logger.debug("newCommitIndex[{}]<=commitIndex[{}], can not advance commitIndex", newCommitIndex, dataManager.getCommitIndex());
+            logger.debug("newCommitIndex[{}]<=commitIndex[{}], can not advance commitIndex", newCommitIndex,
+                    dataManager.getCommitIndex());
             return false;
         }
         Log log = dataManager.getLog(newCommitIndex);
@@ -373,16 +346,16 @@ public class GlobalContext {
             return false;
         }
         /*
-            Raft 有一条强约束：
-            1. Leader 不能主动提交任何不属于自己当前任期的日志条目。
-            只能提交当前 Term 自己产生的日志。
-            2. 但往期日志会被 “顺带提交”
-            当 Leader 提交一条当前任期的日志时，
-            Raft 会根据日志匹配特性，把这条日志之前所有已经复制到多数节点的旧任期日志，一并认定为 committed。
-            3. 为什么要这么设计？
-            为了保证 Leader Completeness 特性（Leader 完整性）：
-            如果允许直接提交旧 Term 日志，可能出现旧日志被提交后又被覆盖的情况；
-            只有通过当前 Term 日志 “带提交”，才能保证已提交的日志永远不会丢失、不会被回滚。
+         * Raft 有一条强约束：
+         * 1. Leader 不能主动提交任何不属于自己当前任期的日志条目。
+         * 只能提交当前 Term 自己产生的日志。
+         * 2. 但往期日志会被 “顺带提交”
+         * 当 Leader 提交一条当前任期的日志时，
+         * Raft 会根据日志匹配特性，把这条日志之前所有已经复制到多数节点的旧任期日志，一并认定为 committed。
+         * 3. 为什么要这么设计？
+         * 为了保证 Leader Completeness 特性（Leader 完整性）：
+         * 如果允许直接提交旧 Term 日志，可能出现旧日志被提交后又被覆盖的情况；
+         * 只有通过当前 Term 日志 “带提交”，才能保证已提交的日志永远不会丢失、不会被回滚。
          */
         if (node.isLeader() && log.getTerm() != term) {
             logger.debug("Log[{}] is not term[{}], unmatched.", log, term);
@@ -406,7 +379,8 @@ public class GlobalContext {
                     logger.info("OLD_NEW log had been committed");
                     enterNewPhase();
                 } else if (logEntry.getType() == Log.NEW) {
-                    // At this point, Cnew Log had been committed, then enter STABLE phase, if the node
+                    // At this point, Cnew Log had been committed, then enter STABLE phase, if the
+                    // node
                     // is not exist in new config, the then node will go offline.
                     logger.info("NEW log had been committed");
                     enterStablePhase();
@@ -417,9 +391,12 @@ public class GlobalContext {
     }
 
     /**
-     * Calculate the new commitIndex based on the current phase of the cluster: 1. If the cluster is in the STABLE phase, only the
-     * majority of nodes in oldConfig need to agree to submit the log. 2. If the cluster is in the NEW phase, only the majority of
-     * nodes in newConfig need to agree to submit the log. 3. If the cluster is in the OLD_NEW phase, you need to agree to the
+     * Calculate the new commitIndex based on the current phase of the cluster: 1.
+     * If the cluster is in the STABLE phase, only the
+     * majority of nodes in oldConfig need to agree to submit the log. 2. If the
+     * cluster is in the NEW phase, only the majority of
+     * nodes in newConfig need to agree to submit the log. 3. If the cluster is in
+     * the OLD_NEW phase, you need to agree to the
      * majority of nodes in newConfig and oldConfig before you can submit the log
      *
      * @return index needed to be committed
@@ -427,21 +404,23 @@ public class GlobalContext {
     public int getNewCommitIndex() {
         Phase phase = currentPhase();
         if (phase == Phase.OLD_NEW) {
-            int oldConfigCommitIndex =
-                    cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1 : cluster.getNewCommitIndexFromOldConfig();
+            int oldConfigCommitIndex = cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1
+                    : cluster.getNewCommitIndexFromOldConfig();
             int newConfigCommitIndex = cluster.getNewCommitIndexFromNewConfig();
-            logger.debug("oldConfigCommitIndex is {}.", oldConfigCommitIndex);
-            logger.debug("newConfigCommitIndex is {}.", newConfigCommitIndex);
-            return Math.min(oldConfigCommitIndex, newConfigCommitIndex);
+            int commitIndex = Math.min(oldConfigCommitIndex, newConfigCommitIndex);
+            logger.debug(
+                    "current phase is OLD_NEW, oldConfigCommitIndex is {}, newConfigCommitIndex is {}, commitIndex is {}.",
+                    oldConfigCommitIndex, newConfigCommitIndex, commitIndex);
+            return commitIndex;
         }
         if (phase == Phase.NEW) {
             int newConfigCommitIndex = cluster.getNewCommitIndexFromNewConfig();
-            logger.debug("newConfigCommitIndex is {}.", newConfigCommitIndex);
+            logger.debug("current phase is NEW, commitIndex is {}.", newConfigCommitIndex);
             return newConfigCommitIndex;
         }
-        int oldConfigCommitIndex =
-                cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1 : cluster.getNewCommitIndexFromOldConfig();
-        logger.debug("oldConfigCommitIndex is {}.", oldConfigCommitIndex);
+        int oldConfigCommitIndex = cluster.getOldConfigSize() <= 1 ? dataManager.getNextIndex() - 1
+                : cluster.getNewCommitIndexFromOldConfig();
+        logger.debug("current phase is {}, commitIndex is {}.", phase, oldConfigCommitIndex);
         return oldConfigCommitIndex;
     }
 
@@ -466,9 +445,12 @@ public class GlobalContext {
     }
 
     /**
-     * The SYNCING phase is added based on the original joint consensus. The task of this phase is to synchronize the logs of the
-     * newly added nodes. Only after the synchronization is completed can the OLD_NEW phase be entered. Therefore, this phase can
-     * be skipped directly if there is no new node. Only when all the newly added nodes have copied the expected set log (index =
+     * The SYNCING phase is added based on the original joint consensus. The task of
+     * this phase is to synchronize the logs of the
+     * newly added nodes. Only after the synchronization is completed can the
+     * OLD_NEW phase be entered. Therefore, this phase can
+     * be skipped directly if there is no new node. Only when all the newly added
+     * nodes have copied the expected set log (index =
      * logSynCompleteState) is the synchronization completed.
      *
      * @return Is it done
@@ -486,14 +468,18 @@ public class GlobalContext {
     }
 
     public void enterSyncingPhase() {
+        if (!node.isLeader()) {
+            logger.warn("current node is not leader, can not enter SYNCING phase.");
+            return;
+        }
         Phase phase = currentPhase();
         if (phase != Phase.STABLE) {
-            logger.warn("current phase[{}] is not STABLE.", phase);
+            logger.warn("current phase[{}] is not STABLE, can not enter SYNCING phase.", phase);
             return;
         }
         int logSynCompleteState = getNewCommitIndex();
         cluster.setLogSynCompleteState(logSynCompleteState);
-        logger.info("logSynCompleteState is {}", logSynCompleteState);
+        logger.info("set a target index[{}] for new nodes to sync logs", logSynCompleteState);
         cluster.setPhase(Phase.SYNCING);
         logger.info("enter SYNCING phase");
 
@@ -509,27 +495,32 @@ public class GlobalContext {
     }
 
     /**
-     * All newly added nodes have synchronized logs to the specified state. Begin to enter the OLD_NEW phase
+     * All newly added nodes have synchronized logs to the specified state. Begin to
+     * enter the OLD_NEW phase
      */
     public void enterOldNewPhase() {
         Phase phase = currentPhase();
         if (phase != Phase.STABLE && phase != Phase.SYNCING) {
-            logger.warn("current phase[{}] is not STABLE or SYNCING.", phase);
+            logger.warn("current phase[{}] is not STABLE or SYNCING, can not enter OLD_NEW phase.", phase);
             return;
         }
         if (node.isLeader()) {
             pendingLog(Log.OLD_NEW, cluster.getOldNewConfigBytes());
-            logger.info("pending OLD_NEW log");
+            logger.info("pending an OLD_NEW log");
         }
         cluster.setPhase(Phase.OLD_NEW);
         logger.info("enter OLD_NEW phase");
     }
 
     /**
-     * Leader and follower enter the NEW phase at different times. The follower enters the NEW phase after receiving the NEW log
-     * from the leader, and the leader enters the NEW phase after submitting the OLD_NEW log. Moreover, after the leader enters
-     * the NEW phase, if it finds that it is not in the newConfig, it will not exit the cluster directly, but needs to wait for
-     * the NEW log to be submitted before exiting the cluster, but the follower will exit the cluster after receiving the NEW log
+     * Leader and follower enter the NEW phase at different times. The follower
+     * enters the NEW phase after receiving the NEW log
+     * from the leader, and the leader enters the NEW phase after submitting the
+     * OLD_NEW log. Moreover, after the leader enters
+     * the NEW phase, if it finds that it is not in the newConfig, it will not exit
+     * the cluster directly, but needs to wait for
+     * the NEW log to be submitted before exiting the cluster, but the follower will
+     * exit the cluster after receiving the NEW log
      * and replying to the leader.
      */
     public void enterNewPhase() {
@@ -547,7 +538,8 @@ public class GlobalContext {
     }
 
     /**
-     * Entering the STABLE stage indicates that the cluster change has been completed, and nodes not in newConfig will actively
+     * Entering the STABLE stage indicates that the cluster change has been
+     * completed, and nodes not in newConfig will actively
      * become followers. And newConfig will replace oldConfig.
      */
     public void enterStablePhase() {
@@ -576,29 +568,30 @@ public class GlobalContext {
         NewConfig newConfig = cluster.createNewConfig(config);
         Map<String, Endpoint> newConfigMap = new HashMap<>();
         newConfig.getNewConfigs()
-                .forEach(endpointMetaData -> newConfigMap.put(endpointMetaData.getNodeId(), new Endpoint(endpointMetaData)));
+                .forEach(endpointMetaData -> newConfigMap.put(endpointMetaData.getNodeId(),
+                        new Endpoint(endpointMetaData)));
         cluster.setNewConfigMap(newConfigMap);
         logger.debug("apply new config, newConfigMap is {}", newConfigMap);
         enterNewPhase();
     }
 
     public boolean updateNewConfig(Set<EndpointMetaData> metaData) {
-        AtomicInteger count = new AtomicInteger();
+        int newEndpointCount = 0;
         Map<String, Endpoint> newConfigMap = new HashMap<>();
-        metaData.forEach(endpointMetaData -> {
+        for (EndpointMetaData endpointMetaData : metaData) {
             Endpoint endpoint = cluster.findFromOldConfig(endpointMetaData.getNodeId());
             if (endpoint == null) {
                 endpoint = new Endpoint(endpointMetaData);
                 endpoint.resetReplicationState(dataManager.getLastIncludeIndex(), dataManager.getNextIndex());
-                count.getAndIncrement();
+                newEndpointCount++;
             } else {
                 endpoint.setMetaData(endpointMetaData);
             }
             newConfigMap.put(endpointMetaData.getNodeId(), endpoint);
-        });
+        }
         cluster.setNewConfigMap(newConfigMap);
         logger.debug("updateNewConfigMap {}", metaData);
-        return count.get() == 0;
+        return newEndpointCount == 0;
     }
 
     public void applyLog(Log log) {
@@ -653,11 +646,13 @@ public class GlobalContext {
         Optional.ofNullable(pendingGetCommandMap.remove(index))
                 .orElse(Collections.emptyList())
                 .forEach(cmd -> channelPool
-                        .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build()));
+                        .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId())
+                                .value(stateMachine.get(cmd.getKey())).build()));
     }
 
     public void replyGetResult(GetCommand cmd) {
-        channelPool.reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build());
+        channelPool.reply(cmd.getId(),
+                GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build());
     }
 
     public void replyGetClusterInfoResult(String requestId) {
@@ -682,7 +677,8 @@ public class GlobalContext {
             getCommands.add(cmd);
         } else {
             channelPool
-                    .reply(cmd.getId(), GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build());
+                    .reply(cmd.getId(),
+                            GetResultCommand.builder().id(cmd.getId()).value(stateMachine.get(cmd.getKey())).build());
         }
     }
 
@@ -709,14 +705,8 @@ public class GlobalContext {
     }
 
     public void close() {
-        subTaskExecutor.shutdownNow();
         dataManager.close();
-        if (executor != null) {
-            executor.shutdown();
-        }
-        if (scheduler != null) {
-            scheduler.close();
-        }
+        taskExecutor.close();
     }
 
 }

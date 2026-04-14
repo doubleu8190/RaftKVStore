@@ -1,9 +1,10 @@
 package cn.ttplatform.wh.data.snapshot;
 
-import cn.ttplatform.wh.data.FileConstant;
+import cn.ttplatform.wh.data.FileManager;
 import cn.ttplatform.wh.data.support.SyncFileOperator;
 import cn.ttplatform.wh.exception.OperateFileException;
 import cn.ttplatform.wh.support.Pool;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -18,18 +19,24 @@ import java.nio.file.Files;
 @Slf4j
 public class SnapshotBuilder {
 
-    private File file;
+    @Getter
+    private File snapshotFile;
+    @Getter
+    // 生成快照的节点ID
     private String snapshotSource;
-    private SyncFileOperator fileOperator;
+    // 快照中最后一条日志的索引
     private int lastIncludeIndex;
+    // 快照中最后一条日志的任期
     private int lastIncludeTerm;
     private final File parent;
+    private SyncFileOperator snapshotFileOperator;
     private final Pool<ByteBuffer> byteBufferPool;
     private final SnapshotFileMetadataRegion snapshotFileMetadataRegion;
     private final SnapshotFileMetadataRegion generatingSnapshotFileMetadataRegion;
 
-    public SnapshotBuilder(File parent, Pool<ByteBuffer> byteBufferPool, SnapshotFileMetadataRegion snapshotFileMetadataRegion,
-                           SnapshotFileMetadataRegion generatingSnapshotFileMetadataRegion) {
+    public SnapshotBuilder(File parent, Pool<ByteBuffer> byteBufferPool,
+            SnapshotFileMetadataRegion snapshotFileMetadataRegion,
+            SnapshotFileMetadataRegion generatingSnapshotFileMetadataRegion) {
         this.snapshotFileMetadataRegion = snapshotFileMetadataRegion;
         this.generatingSnapshotFileMetadataRegion = generatingSnapshotFileMetadataRegion;
         this.byteBufferPool = byteBufferPool;
@@ -40,15 +47,15 @@ public class SnapshotBuilder {
         this.lastIncludeIndex = lastIncludeIndex;
         this.lastIncludeTerm = lastIncludeTerm;
         this.snapshotSource = snapshotSource;
-        this.file = FileConstant.newSnapshotFile(parent, lastIncludeIndex, lastIncludeTerm);
+        this.snapshotFile = FileManager.newSnapshotFile(parent, lastIncludeIndex, lastIncludeTerm);
         try {
-            Files.deleteIfExists(file.toPath());
-            Files.createFile(file.toPath());
+            Files.deleteIfExists(snapshotFile.toPath());
+            Files.createFile(snapshotFile.toPath());
         } catch (IOException e) {
             throw new OperateFileException("failed to delete or create file.", e);
         }
         generatingSnapshotFileMetadataRegion.clear();
-        this.fileOperator = new SyncFileOperator(file, byteBufferPool);
+        this.snapshotFileOperator = new SyncFileOperator(snapshotFile, byteBufferPool);
     }
 
     public long getInstallOffset() {
@@ -61,22 +68,14 @@ public class SnapshotBuilder {
             return;
         }
         long fileSize = generatingSnapshotFileMetadataRegion.getFileSize();
-        fileOperator.append(fileSize, chunk, chunk.length);
-        generatingSnapshotFileMetadataRegion.recordFileSize(fileSize + chunk.length);
-    }
-
-    public File getFile() {
-        return file;
-    }
-
-    public String getSnapshotSource() {
-        return snapshotSource;
+        int written = snapshotFileOperator.append(fileSize, chunk, chunk.length);
+        generatingSnapshotFileMetadataRegion.recordFileSize(fileSize + written);
     }
 
     public void complete() {
         snapshotFileMetadataRegion.recordFileSize(generatingSnapshotFileMetadataRegion.getFileSize());
         snapshotFileMetadataRegion.recordLastIncludeIndex(lastIncludeIndex);
         snapshotFileMetadataRegion.recordLastIncludeTerm(lastIncludeTerm);
-        fileOperator.close();
+        snapshotFileOperator.close();
     }
 }

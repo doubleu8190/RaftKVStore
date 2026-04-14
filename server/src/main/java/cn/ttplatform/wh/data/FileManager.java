@@ -13,9 +13,9 @@ import java.util.regex.Pattern;
  * @author Wang Hao
  * @date 2021/3/16 0:52
  */
-public class FileConstant {
+public class FileManager {
 
-    private FileConstant() {
+    private FileManager() {
     }
 
 

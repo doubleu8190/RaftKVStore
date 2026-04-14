@@ -38,8 +38,11 @@ public class Cluster {
     private Phase phase;
     @Setter
     @Getter
-    private int logSynCompleteState;
+    private int logSynCompleteState; // 新增节点的日志index需要达到此目标，才算是跟上leader进度
 
+    /**
+     * @param context global context
+     */
     public Cluster(GlobalContext context) {
         Set<Endpoint> endpoints = initClusterEndpoints(context.getProperties());
         this.endpointMap = buildMap(endpoints);

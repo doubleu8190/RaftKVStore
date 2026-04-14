@@ -6,7 +6,7 @@ import java.util.concurrent.ScheduledFuture;
  * @author Wang Hao
  * @date 2020/6/30 下午9:25
  */
-public interface Scheduler {
+public interface TaskExecutor {
 
     /**
      * Regularly perform election timeout tasks
@@ -23,6 +23,10 @@ public interface Scheduler {
      * @return ScheduledFuture
      */
     ScheduledFuture<?> scheduleLogReplicationTask(Runnable task);
+
+    void execute(Runnable task);
+
+    void executeSubTask(Runnable task);
 
     /**
      * Close the thread pool immediately

@@ -4,8 +4,8 @@ import cn.ttplatform.wh.data.support.MetadataRegion;
 
 import java.io.File;
 
-import static cn.ttplatform.wh.data.FileConstant.SNAPSHOT_FILE_HEADER_SPACE_POSITION;
-import static cn.ttplatform.wh.data.FileConstant.SNAPSHOT_FILE_HEADER_SPACE_SIZE;
+import static cn.ttplatform.wh.data.FileManager.SNAPSHOT_FILE_HEADER_SPACE_POSITION;
+import static cn.ttplatform.wh.data.FileManager.SNAPSHOT_FILE_HEADER_SPACE_SIZE;
 
 /**
  * @author Wang Hao
