@@ -24,6 +24,8 @@ public abstract class AbstractChannelInitializer extends ChannelInitializer<Sock
         int readIdleTimeout = context.getProperties().getReadIdleTimeout();
         int writeIdleTimeout = context.getProperties().getWriteIdleTimeout();
         int allIdleTimeout = context.getProperties().getAllIdleTimeout();
+        int writeBufferHighWaterMark = context.getProperties().getWriteBufferHighWaterMark();
+        ch.config().setWriteBufferHighWaterMark(writeBufferHighWaterMark);
         pipeline.addLast(new IdleStateHandler(readIdleTimeout, writeIdleTimeout, allIdleTimeout));
 //        pipeline.addLast(new Log4jContextSetupHandler());
         pipeline.addLast(new DistributableCodec(context.getSerializerRegistry()));

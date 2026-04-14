@@ -135,6 +135,42 @@ public class ServerProperties {
 
     private double lazyFlushThreshold;
 
+    /**
+     * The high water mark for the write buffer. When the write buffer reaches this size,
+     * the channel will be marked as unwritable to prevent OOM.
+     * <p>
+     * Unit: bytes
+     * Default value: 65536
+     */
+    private int writeBufferHighWaterMark;
+
+    /**
+     * The read limit for the ChannelTrafficShapingHandler. This limits the read traffic
+     * to protect the core business from sudden traffic spikes.
+     * <p>
+     * Unit: bytes per second
+     * Default value: 1048576
+     */
+    private long channelTrafficShapingHandlerReadLimit;
+
+    /**
+     * The write limit for the ChannelTrafficShapingHandler. This limits the write traffic
+     * to protect the core business from sudden traffic spikes.
+     * <p>
+     * Unit: bytes per second
+     * Default value: 1048576
+     */
+    private long channelTrafficShapingHandlerWriteLimit;
+
+    /**
+     * The capacity of the message queue for each channel. When the channel is not writable,
+     * messages will be queued up to this limit. If the queue is full, new messages will be dropped.
+     * <p>
+     * Unit: number of messages
+     * Default value: 1000
+     */
+    private int queueCapacity;
+
     public ServerProperties() {
         Properties properties = new Properties();
         configure(properties);
@@ -206,6 +242,10 @@ public class ServerProperties {
         logIndexCacheSize = Integer.parseInt(properties.getProperty("logIndexCacheSize"));
         lazyFlushInterval = Long.parseLong(properties.getProperty("lazyFlushInterval"));
         lazyFlushThreshold = Double.parseDouble(properties.getProperty("lazyFlushThreshold"));
+        writeBufferHighWaterMark = Integer.parseInt(properties.getProperty("writeBufferHighWaterMark", "65536"));
+        channelTrafficShapingHandlerReadLimit = Long.parseLong(properties.getProperty("channelTrafficShapingHandlerReadLimit", "1048576"));
+        channelTrafficShapingHandlerWriteLimit = Long.parseLong(properties.getProperty("channelTrafficShapingHandlerWriteLimit", "1048576"));
+        queueCapacity = Integer.parseInt(properties.getProperty("queueCapacity", "1000"));
     }
 
 }
