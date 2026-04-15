@@ -13,7 +13,7 @@ import java.util.List;
  * @date 2021/4/28 23:40
  */
 @Slf4j
-public class DistributableCodec extends ByteToMessageCodec<Distributable> {
+public class DefaultCommandCodec extends ByteToMessageCodec<Distributable> {
 
     private static final byte VERSION = 1;
     private static final int HEADER_LENGTH = 2 + 1 + 1 + 4;
@@ -22,11 +22,11 @@ public class DistributableCodec extends ByteToMessageCodec<Distributable> {
     private final short magicNumber;
     private RequestFailedCommand requestFailedCommand;
 
-    public DistributableCodec(DistributableSerializerRegistry serializerRegistry) {
+    public DefaultCommandCodec(DistributableSerializerRegistry serializerRegistry) {
         this(serializerRegistry, (short) 0x5A5A);
     }
 
-    public DistributableCodec(DistributableSerializerRegistry serializerRegistry, short magicNumber) {
+    public DefaultCommandCodec(DistributableSerializerRegistry serializerRegistry, short magicNumber) {
         this.serializerRegistry = serializerRegistry;
         this.magicNumber = magicNumber;
     }

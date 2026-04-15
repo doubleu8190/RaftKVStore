@@ -1,4 +1,4 @@
-package cn.ttplatform.wh.scheduler;
+package cn.ttplatform.wh.executor;
 
 import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.support.NamedThreadFactory;
