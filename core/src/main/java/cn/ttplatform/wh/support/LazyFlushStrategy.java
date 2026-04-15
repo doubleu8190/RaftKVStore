@@ -2,6 +2,7 @@ package cn.ttplatform.wh.support;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
+import io.netty.util.concurrent.ScheduledFuture;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,19 @@ public class LazyFlushStrategy {
     }
 
     private void beginScheduleTask() {
-        channel.eventLoop().scheduleAtFixedRate(channel::flush, 0, flushInterval, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> scheduledFuture = channel.eventLoop().scheduleAtFixedRate(() -> {
+            if (flush()) {
+                channel.flush();
+            }
+        }, 0, flushInterval, TimeUnit.MILLISECONDS);
+        scheduledFuture.addListener((future) -> {
+            if (future.isCancelled()) {
+                log.debug("lazy flush strategy is cancelled.");
+            }else if (future.isSuccess()) {
+                log.debug("lazy flush success.");
+            } else {
+                log.warn("lazy flush failed. cause: ", future.cause());
+            }
+        });
     }
 }

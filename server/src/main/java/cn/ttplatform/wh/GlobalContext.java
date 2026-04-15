@@ -575,6 +575,7 @@ public class GlobalContext {
         enterNewPhase();
     }
 
+    // 更新newConfigMap, 如果没有新增节点，那么返回true
     public boolean updateNewConfig(Set<EndpointMetaData> metaData) {
         int newEndpointCount = 0;
         Map<String, Endpoint> newConfigMap = new HashMap<>();
