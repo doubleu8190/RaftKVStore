@@ -26,7 +26,7 @@ public class AppendLogEntriesMessageHandler extends AbstractDistributableHandler
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.APPEND_LOG_ENTRIES;
     }
 

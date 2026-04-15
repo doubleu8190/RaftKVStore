@@ -19,6 +19,6 @@ public interface DistributableHandler {
      *
      * @return the type of handler
      */
-    int getHandlerType();
+    byte getHandlerType();
 
 }

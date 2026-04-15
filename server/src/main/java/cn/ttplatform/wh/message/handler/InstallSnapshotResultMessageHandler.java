@@ -1,10 +1,10 @@
 package cn.ttplatform.wh.message.handler;
 
-import cn.ttplatform.wh.message.InstallSnapshotResultMessage;
-import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.Node;
+import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.group.Endpoint;
+import cn.ttplatform.wh.message.InstallSnapshotResultMessage;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
 import cn.ttplatform.wh.support.Distributable;
 import cn.ttplatform.wh.support.Message;
@@ -22,7 +22,7 @@ public class InstallSnapshotResultMessageHandler extends AbstractDistributableHa
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.INSTALL_SNAPSHOT_RESULT;
     }
 

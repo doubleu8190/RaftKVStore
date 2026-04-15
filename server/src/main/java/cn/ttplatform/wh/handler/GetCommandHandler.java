@@ -1,8 +1,8 @@
 package cn.ttplatform.wh.handler;
 
+import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.cmd.GetCommand;
 import cn.ttplatform.wh.constant.DistributableType;
-import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
 import cn.ttplatform.wh.support.Distributable;
 
@@ -29,7 +29,7 @@ public class GetCommandHandler extends AbstractDistributableHandler {
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.GET_COMMAND;
     }
 }

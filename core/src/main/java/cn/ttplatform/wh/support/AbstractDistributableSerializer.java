@@ -3,6 +3,8 @@ package cn.ttplatform.wh.support;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.protostuff.LinkedBuffer;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -11,6 +13,7 @@ import java.nio.ByteBuffer;
  * @author Wang Hao
  * @date 2021/3/15 14:25
  */
+@Slf4j
 public abstract class AbstractDistributableSerializer implements DistributableSerializer {
 
     Pool<LinkedBuffer> pool;
@@ -42,23 +45,28 @@ public abstract class AbstractDistributableSerializer implements DistributableSe
 
     @Override
     public void serialize(Distributable distributable, ByteBuf byteBuffer) {
-        // write the message type(4 bytes) into buffer
-        byteBuffer.writeInt(getFactoryType());
+        // write the message type(1 bytes) into buffer
+        byteBuffer.writeByte(getFactoryType());
+        // 记录一下contentLength的写入开始位置
         int writerIndex = byteBuffer.writerIndex();
-        byteBuffer.writeInt(getFactoryType());
+        int contentLength = 0;
+        // 这里先写入0值，用作占位
+        byteBuffer.writeInt(contentLength);
         ByteBufOutputStream byteBufOutputStream = new ByteBufOutputStream(byteBuffer);
         LinkedBuffer buffer = pool.allocate();
         try {
             serialize(distributable, buffer, byteBufOutputStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("serialize error", e);
         } finally {
             pool.recycle(buffer);
         }
         int newWriterIndex = byteBuffer.writerIndex();
-        // back off the writerIndex(offset=4), then record the contentLength(4 bytes)
+        // back off the writerIndex(offset=1), then record the contentLength(4 bytes)
         byteBuffer.writerIndex(writerIndex);
-        byteBuffer.writeInt(newWriterIndex - 8);
+        // type(1 bytes) + contentLength(4 bytes) = 5 bytes
+        contentLength = newWriterIndex - 5;
+        byteBuffer.writeInt(contentLength);
         // restore the writerIndex
         byteBuffer.writerIndex(newWriterIndex);
     }

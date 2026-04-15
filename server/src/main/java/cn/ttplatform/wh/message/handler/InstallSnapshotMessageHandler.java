@@ -1,9 +1,9 @@
 package cn.ttplatform.wh.message.handler;
 
+import cn.ttplatform.wh.GlobalContext;
+import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.message.InstallSnapshotMessage;
 import cn.ttplatform.wh.message.InstallSnapshotResultMessage;
-import cn.ttplatform.wh.constant.DistributableType;
-import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.role.Role;
 import cn.ttplatform.wh.role.RoleType;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
@@ -24,7 +24,7 @@ public class InstallSnapshotMessageHandler extends AbstractDistributableHandler 
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.INSTALL_SNAPSHOT;
     }
 

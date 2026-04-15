@@ -9,9 +9,10 @@ import cn.ttplatform.wh.group.EndpointMetaData;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
 import cn.ttplatform.wh.support.ChannelPool;
 import cn.ttplatform.wh.support.Distributable;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashSet;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Wang Hao
@@ -59,7 +60,7 @@ public class ClusterChangeCommandHandler extends AbstractDistributableHandler {
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.CLUSTER_CHANGE_COMMAND;
     }
 }

@@ -11,7 +11,7 @@ import java.util.Map;
 public class CommonDistributor implements Registry<DistributableHandler>, Distributor<Distributable> {
 
     private static final int COUNT_OF_HANDLER = 12;
-    private final Map<Integer, DistributableHandler> handlerMap;
+    private final Map<Byte, DistributableHandler> handlerMap;
 
     public CommonDistributor() {
         this.handlerMap = new HashMap<>((int) (COUNT_OF_HANDLER / 0.75f + 1));

@@ -18,7 +18,7 @@ public class SyncingCommandHandler extends AbstractDistributableHandler {
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.SYNCING;
     }
 

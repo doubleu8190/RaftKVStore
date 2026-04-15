@@ -22,7 +22,7 @@ public class AppendLogEntriesResultMessageHandler extends AbstractDistributableH
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.APPEND_LOG_ENTRIES_RESULT;
     }
 

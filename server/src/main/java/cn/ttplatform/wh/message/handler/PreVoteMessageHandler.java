@@ -1,10 +1,10 @@
 package cn.ttplatform.wh.message.handler;
 
-import cn.ttplatform.wh.message.PreVoteMessage;
-import cn.ttplatform.wh.message.PreVoteResultMessage;
-import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.Node;
+import cn.ttplatform.wh.constant.DistributableType;
+import cn.ttplatform.wh.message.PreVoteMessage;
+import cn.ttplatform.wh.message.PreVoteResultMessage;
 import cn.ttplatform.wh.role.Follower;
 import cn.ttplatform.wh.role.Role;
 import cn.ttplatform.wh.support.AbstractDistributableHandler;
@@ -23,7 +23,7 @@ public class PreVoteMessageHandler extends AbstractDistributableHandler {
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.PRE_VOTE;
     }
 

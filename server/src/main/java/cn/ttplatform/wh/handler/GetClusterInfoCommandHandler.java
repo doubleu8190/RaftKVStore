@@ -28,7 +28,7 @@ public class GetClusterInfoCommandHandler extends AbstractDistributableHandler {
     }
 
     @Override
-    public int getHandlerType() {
+    public byte getHandlerType() {
         return DistributableType.GET_CLUSTER_INFO_COMMAND;
     }
 }
