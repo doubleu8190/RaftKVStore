@@ -28,7 +28,7 @@ public abstract class AbstractChannelInitializer extends ChannelInitializer<Sock
         ch.config().setWriteBufferHighWaterMark(writeBufferHighWaterMark);
         pipeline.addLast(new IdleStateHandler(readIdleTimeout, writeIdleTimeout, allIdleTimeout));
         short protocolMagicNumber = context.getProperties().getProtocolMagicNumber();
-        pipeline.addLast(new DistributableCodec(context.getSerializerRegistry(), protocolMagicNumber));
+        pipeline.addLast(new DefaultCommandCodec(context.getSerializerRegistry(), protocolMagicNumber));
 
         custom(pipeline);
     }

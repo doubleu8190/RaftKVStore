@@ -54,10 +54,10 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
         channelMessageQueues.put(channel, new LinkedBlockingQueue<>(queueCapacity));
     }
 
-    private boolean sendQueuedMessages(ChannelHandlerContext ctx, Channel channel) {
+    private void sendQueuedMessages(ChannelHandlerContext ctx, Channel channel) {
         Queue<Object> queue = channelMessageQueues.get(channel);
         if (queue == null || queue.isEmpty()) {
-            return false;
+            return;
         }
 
         int sent = 0;
@@ -75,7 +75,6 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
                     sent, channel, queue.size());
         }
 
-        return !queue.isEmpty();
     }
 
     @Override
@@ -105,8 +104,9 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
                 leaderId = role.getLeaderId();
             }
             log.info("current role is not a leader, redirect request to node[id={}]", leaderId);
-            ctx.channel().writeAndFlush(RedirectCommand.builder().id(command.getId()).leader(leaderId)
-                    .endpointMetaData(context.getCluster().getAllEndpointMetaData().toString()).build());
+            RedirectCommand redirectCommand = RedirectCommand.builder().id(command.getId()).leader(leaderId)
+                    .endpointMetaData(context.getCluster().getAllEndpointMetaData().toString()).build();
+            ctx.channel().writeAndFlush(redirectCommand);
             return false;
         }
         return true;
@@ -167,7 +167,7 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
             if (channel.isWritable()) {
                 super.write(ctx, msg, promise.addListener(future -> {
                     if (!future.isSuccess()) {
-                        log.error("Write failed for channel {}, cause: {}", channel, future.cause());
+                        log.error("Write failed for channel {}, cause: ", channel, future.cause());
                     }
                 }));
                 return;
@@ -199,7 +199,7 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
         // 如果没有队列（不应该发生），直接发送
         super.write(ctx, msg, promise.addListener(future -> {
             if (!future.isSuccess()) {
-                log.error("Write failed for channel {}, cause: {}", channel, future.cause());
+                log.error("Write failed for channel {}, cause: ", channel, future.cause());
             }
         }));
     }

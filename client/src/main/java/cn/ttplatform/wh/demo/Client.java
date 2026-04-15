@@ -2,7 +2,7 @@ package cn.ttplatform.wh.demo;
 
 import cn.ttplatform.wh.cmd.*;
 import cn.ttplatform.wh.cmd.factory.*;
-import cn.ttplatform.wh.support.DistributableCodec;
+import cn.ttplatform.wh.support.DefaultCommandCodec;
 import cn.ttplatform.wh.support.DistributableSerializerRegistry;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.Pool;
@@ -101,7 +101,7 @@ public class Client {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new DistributableCodec(factoryManager, protocolMagicNumber));
+                        pipeline.addLast(new DefaultCommandCodec(factoryManager, protocolMagicNumber));
                         pipeline.addLast(new ClientDuplexChannelHandler(watcher));
                     }
                 });
