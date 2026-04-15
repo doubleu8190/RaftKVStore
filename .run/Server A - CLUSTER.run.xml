@@ -4,7 +4,7 @@
     <option name="MAIN_CLASS_NAME" value="cn.ttplatform.wh.ServerLauncher" />
     <module name="server" />
     <option name="PROGRAM_PARAMETERS" value="-c $PROJECT_DIR$/server/src/main/resources/A/server.properties" />
-    <option name="VM_PARAMETERS" value="-Xmx8G -Xms8G" />
+    <option name="VM_PARAMETERS" value="-Xmx8G -Xms8G -Dio.netty.leakDetectionLevel=paranoid" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="cn.ttplatform.wh.*" />
