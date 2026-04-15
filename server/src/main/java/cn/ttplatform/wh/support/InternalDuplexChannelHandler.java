@@ -1,8 +1,6 @@
-package cn.ttplatform.wh.group;
+package cn.ttplatform.wh.support;
 
 import cn.ttplatform.wh.GlobalContext;
-import cn.ttplatform.wh.support.AbstractDuplexChannelHandler;
-import cn.ttplatform.wh.support.Message;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,9 +12,9 @@ import lombok.extern.slf4j.Slf4j;
  **/
 @Slf4j
 @Sharable
-public class CoreDuplexChannelHandler extends AbstractDuplexChannelHandler {
+public class InternalDuplexChannelHandler extends AbstractDuplexChannelHandler {
 
-    public CoreDuplexChannelHandler(GlobalContext context) {
+    public InternalDuplexChannelHandler(GlobalContext context) {
         super(context);
     }
 
@@ -28,7 +26,7 @@ public class CoreDuplexChannelHandler extends AbstractDuplexChannelHandler {
             log.debug("receive a msg {} from {}.", msg, sourceId);
             channelPool.cacheChannel(sourceId, channel);
             distributor.distribute((Message) msg);
-             ctx.fireChannelRead(msg);
+            ctx.fireChannelRead(msg);
         } else {
             log.error("unknown message type, msg is {}", msg);
             channel.close();

@@ -2,24 +2,22 @@ package cn.ttplatform.wh.group;
 
 import cn.ttplatform.wh.GlobalContext;
 import cn.ttplatform.wh.cmd.Command;
-import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.support.ChannelPool;
+import cn.ttplatform.wh.support.InternalChannelInitializer;
 import cn.ttplatform.wh.support.Message;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-
-import java.net.InetSocketAddress;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+
+import java.net.InetSocketAddress;
 
 /**
  * @author Wang Hao
@@ -48,14 +46,14 @@ public class Connector {
         return new Bootstrap().group(worker)
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.TCP_NODELAY, Boolean.TRUE)
-                .handler(new CoreChannelInitializer(context));
+                .handler(new InternalChannelInitializer(context));
     }
 
     public void listen(InetSocketAddress address) {
         ServerBootstrap serverBootstrap = new ServerBootstrap().group(boss, worker)
                 .channel(NioServerSocketChannel.class)
                 .childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE)
-                .childHandler(new CoreChannelInitializer(context));
+                .childHandler(new InternalChannelInitializer(context));
         try {
             serverBootstrap.bind(address).addListener(future -> {
                 if (future.isSuccess()) {
