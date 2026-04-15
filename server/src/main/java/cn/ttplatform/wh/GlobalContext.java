@@ -683,17 +683,18 @@ public class GlobalContext {
     }
 
     public boolean setCurrentClusterChangeTask(ClusterChangeCommand command) {
-        if (clusterChangeCommand != null) {
-            logger.info("clusterChangeCommand is not null");
+        if (this.clusterChangeCommand != null) {
+            logger.info("clusterChange is in progress.");
             return false;
         }
-        clusterChangeCommand = command;
+        if (cluster.getPhase() != Phase.STABLE) {
+            logger.info("cluster phase is {}, clusterChangeCommand only can be executed when phase is STABLE.",
+                    cluster.getPhase());
+            return false;
+        }
+        this.clusterChangeCommand = command;
         logger.info("update clusterChangeCommand success.");
         return true;
-    }
-
-    public void removeClusterChangeTask() {
-        clusterChangeCommand = null;
     }
 
     public int pendingLog(int type, byte[] cmd) {
