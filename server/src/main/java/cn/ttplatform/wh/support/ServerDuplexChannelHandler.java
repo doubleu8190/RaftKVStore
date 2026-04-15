@@ -54,10 +54,10 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
         channelMessageQueues.put(channel, new LinkedBlockingQueue<>(queueCapacity));
     }
 
-    private boolean sendQueuedMessages(ChannelHandlerContext ctx, Channel channel) {
+    private void sendQueuedMessages(ChannelHandlerContext ctx, Channel channel) {
         Queue<Object> queue = channelMessageQueues.get(channel);
         if (queue == null || queue.isEmpty()) {
-            return false;
+            return;
         }
 
         int sent = 0;
@@ -75,7 +75,6 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
                     sent, channel, queue.size());
         }
 
-        return !queue.isEmpty();
     }
 
     @Override

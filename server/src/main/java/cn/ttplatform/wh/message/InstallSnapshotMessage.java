@@ -26,7 +26,7 @@ public class InstallSnapshotMessage extends AbstractMessage {
     private boolean done;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.INSTALL_SNAPSHOT;
     }
 

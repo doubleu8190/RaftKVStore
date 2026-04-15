@@ -19,7 +19,7 @@ public class SetResultCommand extends AbstractCommand {
     private boolean result;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.SET_COMMAND_RESULT;
     }
 

@@ -20,7 +20,7 @@ public class RedirectCommand extends AbstractCommand {
     private String endpointMetaData;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.REDIRECT_COMMAND;
     }
 

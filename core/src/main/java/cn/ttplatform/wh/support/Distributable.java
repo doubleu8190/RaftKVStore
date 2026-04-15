@@ -11,5 +11,5 @@ public interface Distributable {
      *
      * @return the type of Distributable obj
      */
-    int getType();
+    byte getType();
 }

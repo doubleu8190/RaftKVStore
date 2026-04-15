@@ -33,7 +33,7 @@ public class AppendLogEntriesMessage extends AbstractMessage {
     }
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.APPEND_LOG_ENTRIES;
     }
 

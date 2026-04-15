@@ -21,7 +21,7 @@ public class ClusterChangeResultCommand extends AbstractCommand {
     private boolean done;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.CLUSTER_CHANGE_RESULT_COMMAND;
     }
 

@@ -1,12 +1,13 @@
 package cn.ttplatform.wh.cmd;
 
 import cn.ttplatform.wh.constant.DistributableType;
-import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+
+import java.util.Set;
 
 /**
  * @author Wang Hao
@@ -22,7 +23,7 @@ public class ClusterChangeCommand extends AbstractCommand {
     private Set<String> newConfig;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.CLUSTER_CHANGE_COMMAND;
     }
 

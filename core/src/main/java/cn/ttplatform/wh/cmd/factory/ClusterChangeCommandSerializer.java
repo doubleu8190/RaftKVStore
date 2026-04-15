@@ -29,7 +29,7 @@ public class ClusterChangeCommandSerializer extends AbstractDistributableSeriali
     }
 
     @Override
-    public int getFactoryType() {
+    public byte getFactoryType() {
         return DistributableType.CLUSTER_CHANGE_COMMAND;
     }
 

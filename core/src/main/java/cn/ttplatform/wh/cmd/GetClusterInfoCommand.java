@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
 public class GetClusterInfoCommand extends AbstractCommand {
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.GET_CLUSTER_INFO_COMMAND;
     }
 

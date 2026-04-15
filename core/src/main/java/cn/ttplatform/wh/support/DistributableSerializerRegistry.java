@@ -11,7 +11,7 @@ import java.util.Map;
 public class DistributableSerializerRegistry implements Registry<DistributableSerializer> {
 
     private static final int COUNT_OF_FACTORY = 18;
-    private final Map<Integer, DistributableSerializer> factoryMap;
+    private final Map<Byte, DistributableSerializer> factoryMap;
 
     public DistributableSerializerRegistry() {
         this.factoryMap = new HashMap<>((int) (COUNT_OF_FACTORY / 0.75f + 1));
@@ -22,7 +22,7 @@ public class DistributableSerializerRegistry implements Registry<DistributableSe
         factoryMap.put(factory.getFactoryType(), factory);
     }
 
-    public DistributableSerializer getSerializer(int type) {
+    public DistributableSerializer getSerializer(byte type) {
         DistributableSerializer factory = factoryMap.get(type);
         if (factory == null) {
             throw new UnknownTypeException("unknown message type[" + type + "]");

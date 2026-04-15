@@ -19,7 +19,7 @@ public class GetResultCommand extends AbstractCommand {
     private String value;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.GET_COMMAND_RESULT;
     }
 

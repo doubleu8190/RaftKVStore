@@ -1,9 +1,9 @@
 package cn.ttplatform.wh.message.serializer;
 
-import cn.ttplatform.wh.message.InstallSnapshotMessage;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.constant.ErrorMessage;
 import cn.ttplatform.wh.exception.MessageParseException;
+import cn.ttplatform.wh.message.InstallSnapshotMessage;
 import cn.ttplatform.wh.support.AbstractDistributableSerializer;
 import cn.ttplatform.wh.support.Distributable;
 import cn.ttplatform.wh.support.Pool;
@@ -12,6 +12,7 @@ import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -29,7 +30,7 @@ public class InstallSnapshotMessageSerializer extends AbstractDistributableSeria
     }
 
     @Override
-    public int getFactoryType() {
+    public byte getFactoryType() {
         return DistributableType.INSTALL_SNAPSHOT;
     }
 

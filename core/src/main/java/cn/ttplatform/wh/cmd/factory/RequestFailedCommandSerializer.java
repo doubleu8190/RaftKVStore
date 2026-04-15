@@ -29,7 +29,7 @@ public class RequestFailedCommandSerializer extends AbstractDistributableSeriali
     }
 
     @Override
-    public int getFactoryType() {
+    public byte getFactoryType() {
         return DistributableType.REQUEST_FAILED_COMMAND;
     }
 

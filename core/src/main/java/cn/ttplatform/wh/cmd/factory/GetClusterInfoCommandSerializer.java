@@ -29,7 +29,7 @@ public class GetClusterInfoCommandSerializer extends AbstractDistributableSerial
     }
 
     @Override
-    public int getFactoryType() {
+    public byte getFactoryType() {
         return DistributableType.GET_CLUSTER_INFO_COMMAND;
     }
 

@@ -29,7 +29,7 @@ public class SetCommandSerializer extends AbstractDistributableSerializer {
     }
 
     @Override
-    public int getFactoryType() {
+    public byte getFactoryType() {
         return DistributableType.SET_COMMAND;
     }
 

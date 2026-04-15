@@ -4,8 +4,9 @@ import cn.ttplatform.wh.cmd.RequestFailedCommand;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageCodec;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 /**
  * @author Wang Hao
@@ -95,12 +96,10 @@ public class DistributableCodec extends ByteToMessageCodec<Distributable> {
         int newReaderIndex = in.readerIndex() + contentLength;
 
         try {
-            // 将byte类型转换为int（DistributableType使用int）
-            int typeInt = type & 0xFF;
-            DistributableSerializer serializer = serializerRegistry.getSerializer(typeInt);
+            DistributableSerializer serializer = serializerRegistry.getSerializer(type);
             Distributable distributable = serializer.deserialize(in.nioBuffer(), contentLength);
 
-            log.debug("Received message type: {}", typeInt);
+            log.debug("Received message type: {}", type);
 
             out.add(distributable);
         } catch (Exception e) {

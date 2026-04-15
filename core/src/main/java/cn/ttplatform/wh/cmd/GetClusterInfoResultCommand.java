@@ -26,7 +26,7 @@ public class GetClusterInfoResultCommand extends AbstractCommand {
     private int size;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.GET_CLUSTER_INFO_RESULT_COMMAND;
     }
 

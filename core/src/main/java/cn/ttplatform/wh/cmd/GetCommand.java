@@ -21,7 +21,7 @@ public class GetCommand extends AbstractCommand{
     private String key;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.GET_COMMAND;
     }
 

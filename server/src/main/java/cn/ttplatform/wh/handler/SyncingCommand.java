@@ -3,11 +3,7 @@ package cn.ttplatform.wh.handler;
 import cn.ttplatform.wh.cmd.AbstractCommand;
 import cn.ttplatform.wh.constant.DistributableType;
 import cn.ttplatform.wh.group.EndpointMetaData;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -27,7 +23,7 @@ public class SyncingCommand extends AbstractCommand {
     private EndpointMetaData followerMetaData;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.SYNCING;
     }
 }

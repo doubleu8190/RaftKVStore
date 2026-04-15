@@ -24,7 +24,7 @@ public class InstallSnapshotResultMessage extends AbstractMessage{
     private boolean success;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.INSTALL_SNAPSHOT_RESULT;
     }
 

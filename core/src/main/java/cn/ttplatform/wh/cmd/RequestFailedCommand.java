@@ -21,7 +21,7 @@ public class RequestFailedCommand extends AbstractCommand {
     private String failedMessage;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.REQUEST_FAILED_COMMAND;
     }
 

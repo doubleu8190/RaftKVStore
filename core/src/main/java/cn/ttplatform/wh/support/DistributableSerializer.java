@@ -11,6 +11,6 @@ public interface DistributableSerializer extends Serializer<Distributable> {
      *
      * @return the type of factory
      */
-    int getFactoryType();
+    byte getFactoryType();
 
 }

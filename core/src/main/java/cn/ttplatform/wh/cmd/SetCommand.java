@@ -21,7 +21,7 @@ public class SetCommand extends AbstractCommand {
     private KeyValuePair keyValuePair;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.SET_COMMAND;
     }
 

@@ -29,7 +29,7 @@ public class RedirectCommandSerializer extends AbstractDistributableSerializer {
     }
 
     @Override
-    public int getFactoryType() {
+    public byte getFactoryType() {
         return DistributableType.REDIRECT_COMMAND;
     }
 

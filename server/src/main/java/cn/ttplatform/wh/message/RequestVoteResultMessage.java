@@ -1,11 +1,7 @@
 package cn.ttplatform.wh.message;
 
 import cn.ttplatform.wh.constant.DistributableType;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -24,7 +20,7 @@ public class RequestVoteResultMessage extends AbstractMessage {
     private boolean isVoted;
 
     @Override
-    public int getType() {
+    public byte getType() {
         return DistributableType.REQUEST_VOTE_RESULT;
     }
 
