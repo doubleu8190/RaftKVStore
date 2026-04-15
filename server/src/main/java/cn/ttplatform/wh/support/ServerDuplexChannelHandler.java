@@ -89,6 +89,7 @@ public class ServerDuplexChannelHandler extends AbstractDuplexChannelHandler {
             }
             channelPool.cacheChannel(commandId, channel);
             distributor.distribute(command);
+            ctx.fireChannelRead(msg);
         } else {
             log.error("unknown message type, msg is {} from {}", msg, channel);
             channel.close();

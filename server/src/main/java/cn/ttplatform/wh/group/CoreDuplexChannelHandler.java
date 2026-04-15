@@ -28,8 +28,10 @@ public class CoreDuplexChannelHandler extends AbstractDuplexChannelHandler {
             log.debug("receive a msg {} from {}.", msg, sourceId);
             channelPool.cacheChannel(sourceId, channel);
             distributor.distribute((Message) msg);
+             ctx.fireChannelRead(msg);
         } else {
             log.error("unknown message type, msg is {}", msg);
+            channel.close();
         }
     }
 }
