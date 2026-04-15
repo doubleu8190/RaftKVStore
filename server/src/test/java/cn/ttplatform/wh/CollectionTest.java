@@ -48,6 +48,7 @@ public class CollectionTest {
         begin = System.nanoTime();
         integers.subList(10000, 90000);
         log.info("ArrayList sublist from {} to {} cost {} ns.", 10000, 90000, System.nanoTime() - begin);
+        @SuppressWarnings("unchecked")
         ArrayList<Integer> clone = (ArrayList<Integer>) integers.clone();
         begin = System.nanoTime();
         while (!integers.isEmpty()) {

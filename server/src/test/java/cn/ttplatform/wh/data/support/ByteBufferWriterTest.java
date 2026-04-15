@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import cn.ttplatform.wh.data.support.ByteBufferWriter;
 import cn.ttplatform.wh.support.DirectByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 

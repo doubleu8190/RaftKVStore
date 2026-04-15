@@ -4,7 +4,6 @@ import cn.ttplatform.wh.config.ServerProperties;
 import cn.ttplatform.wh.data.index.LogIndex;
 import cn.ttplatform.wh.data.index.SyncLogIndexFile;
 import cn.ttplatform.wh.data.index.LogIndexFileMetadataRegion;
-import cn.ttplatform.wh.support.DirectByteBufferPool;
 import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;

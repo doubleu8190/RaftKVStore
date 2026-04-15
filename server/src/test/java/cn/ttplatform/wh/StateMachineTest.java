@@ -1,6 +1,5 @@
 package cn.ttplatform.wh;
 
-import cn.ttplatform.wh.StateMachine;
 import cn.ttplatform.wh.support.FixedSizeLinkedBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import io.protostuff.LinkedBuffer;

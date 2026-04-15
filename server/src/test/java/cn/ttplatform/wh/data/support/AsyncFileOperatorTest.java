@@ -1,7 +1,6 @@
 package cn.ttplatform.wh.data.support;
 
 import cn.ttplatform.wh.config.ServerProperties;
-import cn.ttplatform.wh.support.DirectByteBufferPool;
 import cn.ttplatform.wh.support.HeapByteBufferPool;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,6 @@ public class AsyncFileOperatorTest {
         bufferPool = new HeapByteBufferPool(properties.getByteBufferPoolSize(),
                 properties.getBlockSize(), properties.getByteBufferSizeLimit());
         File file = File.createTempFile("AsyncFileOperatorTest-", ".txt");
-        File metaFile = File.createTempFile("AsyncLogMetaFile-", ".txt");
         fileOperator = new AsyncFileOperator(properties, bufferPool, file);
     }
 

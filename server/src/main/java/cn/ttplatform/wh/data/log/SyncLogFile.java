@@ -1,6 +1,5 @@
 package cn.ttplatform.wh.data.log;
 
-import cn.ttplatform.wh.data.support.Bits;
 import cn.ttplatform.wh.data.support.SyncFileOperator;
 import cn.ttplatform.wh.support.Pool;
 import lombok.extern.slf4j.Slf4j;
