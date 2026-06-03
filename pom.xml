@@ -18,7 +18,7 @@
   <properties>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <lombok.version>1.18.30</lombok.version>
+    <lombok.version>1.18.46</lombok.version>
     <netty-handler.version>4.1.108.Final</netty-handler.version>
     <slf4j-api.version>2.0.9</slf4j-api.version>
     <slf4j-log4j12.version>2.0.9</slf4j-log4j12.version>
