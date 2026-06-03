@@ -12,6 +12,7 @@
     <module>server</module>
     <module>client</module>
     <module>core</module>
+    <module>admin</module>
   </modules>
 
   <properties>
@@ -25,6 +26,8 @@
     <protostuff-core.version>1.8.0</protostuff-core.version>
     <commons-cli.version>1.6.0</commons-cli.version>
     <junit.version>4.13.2</junit.version>
+    <javalin.version>5.6.3</javalin.version>
+    <jackson.version>2.16.1</jackson.version>
     <maven.compiler.plugin.version>3.12.1</maven.compiler.plugin.version>
   </properties>
 
@@ -73,6 +76,16 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.javalin</groupId>
+        <artifactId>javalin</artifactId>
+        <version>${javalin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

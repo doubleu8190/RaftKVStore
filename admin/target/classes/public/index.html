@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaftKVStore Admin</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <h1>RaftKVStore Admin</h1>
+        <div id="status-badge" class="badge disconnected">Disconnected</div>
+    </header>
+
+    <main>
+        <!-- SET Card -->
+        <section class="card">
+            <h2>SET Key-Value</h2>
+            <form id="set-form">
+                <div class="form-group">
+                    <label for="set-key">Key</label>
+                    <input type="text" id="set-key" placeholder="mykey" required>
+                </div>
+                <div class="form-group">
+                    <label for="set-value">Value</label>
+                    <input type="text" id="set-value" placeholder="myvalue" required>
+                </div>
+                <button type="submit">Set</button>
+            </form>
+            <pre id="set-result" class="result hidden"></pre>
+        </section>
+
+        <!-- GET Card -->
+        <section class="card">
+            <h2>GET Key</h2>
+            <form id="get-form">
+                <div class="form-group">
+                    <label for="get-key">Key</label>
+                    <input type="text" id="get-key" placeholder="mykey" required>
+                </div>
+                <button type="submit">Get</button>
+            </form>
+            <pre id="get-result" class="result hidden"></pre>
+        </section>
+
+        <!-- Cluster Info Card -->
+        <section class="card">
+            <h2>Cluster Info</h2>
+            <button id="cluster-info-btn">Refresh</button>
+            <div id="cluster-info-result" class="hidden">
+                <table>
+                    <tbody>
+                        <tr><td>Leader</td><td id="ci-leader">-</td></tr>
+                        <tr><td>Mode</td><td id="ci-mode">-</td></tr>
+                        <tr><td>Phase</td><td id="ci-phase">-</td></tr>
+                        <tr><td>Old Config</td><td id="ci-old-config">-</td></tr>
+                        <tr><td>New Config</td><td id="ci-new-config">-</td></tr>
+                        <tr><td>Size</td><td id="ci-size">-</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <pre id="cluster-info-error" class="result error hidden"></pre>
+        </section>
+
+        <!-- Add Node Card -->
+        <section class="card">
+            <h2>Add Node</h2>
+            <form id="add-node-form">
+                <div class="form-group">
+                    <label for="an-node-id">Node ID</label>
+                    <input type="text" id="an-node-id" placeholder="D" required>
+                </div>
+                <div class="form-group">
+                    <label for="an-host">Host</label>
+                    <input type="text" id="an-host" placeholder="127.0.0.1" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="an-port">Port</label>
+                        <input type="number" id="an-port" placeholder="9999" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="an-conn-port">Connector Port</label>
+                        <input type="number" id="an-conn-port" placeholder="9998" required>
+                    </div>
+                </div>
+                <button type="submit">Add Node</button>
+            </form>
+            <pre id="add-node-result" class="result hidden"></pre>
+        </section>
+
+        <!-- Remove Node Card -->
+        <section class="card">
+            <h2>Remove Node</h2>
+            <form id="remove-node-form">
+                <div class="form-group">
+                    <label for="rn-node-id">Node ID</label>
+                    <input type="text" id="rn-node-id" placeholder="D" required>
+                </div>
+                <button type="submit">Remove Node</button>
+            </form>
+            <pre id="remove-node-result" class="result hidden"></pre>
+        </section>
+    </main>
+
+    <script src="/app.js"></script>
+</body>
+</html>
